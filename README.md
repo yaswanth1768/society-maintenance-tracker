@@ -221,50 +221,102 @@ vercel
 
 ## 📸 Screenshots
 
-> Save your screenshots as the filenames below inside `public/screenshots/` and they'll display here automatically.
-
 ### 🔐 Login Page
-![Login Page](public/screenshots/01-login.png)
+> *Auto-generated from the live app — always up to date*
+
+[![Login Page](https://image.thum.io/get/width/1280/crop/768/https://society-maintenance-track.vercel.app/)](https://society-maintenance-track.vercel.app/#/login)
 
 ---
 
 ### 👤 Resident Dashboard
-![Resident Dashboard](public/screenshots/02-resident-dashboard.png)
+
+> These pages require login — click the button to explore live:
+
+[![View Resident Dashboard](https://img.shields.io/badge/▶%20View%20Live-Resident%20Dashboard-4f46e5?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/dashboard)
+
+**Preview:** Login with `rohith@example.com` / `password123`
+
+- 📊 Stats: Total complaints, Open, In Progress, Resolved
+- 📋 Recent complaints table with priority & status badges
+- 📣 Recent notices from admin
+- ✅ Society Rules acknowledgement modal
 
 ---
 
 ### 📋 Society Rules & Code of Conduct
-![Society Rules Modal](public/screenshots/03-rules-modal.png)
+
+[![View Rules Modal](https://img.shields.io/badge/▶%20View%20Live-Society%20Rules%20Modal-7c3aed?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/dashboard)
+
+- Quiet Hours & Noise Control rules
+- Waste Segregation & Collection policy
+- Parking, Amenities & Gym timings
+- Monthly Maintenance Payments
+- Complaint Resolution SLAs
 
 ---
 
-### 📣 Notice Board
-![Notice Board](public/screenshots/04-notice-board.png)
+### 📣 Notice Board (Resident)
+
+[![View Notice Board](https://img.shields.io/badge/▶%20View%20Live-Notice%20Board-0891b2?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/notices)
+
+- Water Tank Cleaning notice
+- Monthly Maintenance Charges Due
+- Parking Area Repainting
+- Diwali Celebration Planning Meeting
 
 ---
 
 ### 📝 New Complaint Form
-![New Complaint](public/screenshots/05-new-complaint.png)
+
+[![View Complaint Form](https://img.shields.io/badge/▶%20View%20Live-New%20Complaint-16a34a?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/complaints/new)
+
+- Category selector (Plumbing, Electrical, Lift, Security…)
+- Description textarea with guidance prompt
+- Optional photo upload (JPG/PNG/WEBP up to 5MB)
 
 ---
 
 ### 🛡️ Admin Dashboard
-![Admin Dashboard](public/screenshots/06-admin-dashboard.png)
+
+[![View Admin Dashboard](https://img.shields.io/badge/▶%20View%20Live-Admin%20Dashboard-dc2626?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/admin/dashboard)
+
+**Preview:** Login with `admin@society.com` / `admin123`
+
+- 5 KPI cards: Total, Open, In Progress, Resolved, Overdue
+- Complaints by Status — doughnut chart
+- Complaints by Category — bar chart
+- Overdue complaints table with days-open counter
 
 ---
 
 ### 📊 Reports & Analytics
-![Reports & Analytics](public/screenshots/07-reports-analytics.png)
+
+[![View Reports](https://img.shields.io/badge/▶%20View%20Live-Reports%20%26%20Analytics-ea580c?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/admin/reports)
+
+- Total Issues · Resolution Rate · Avg. Age · Active Overdue SLA
+- Status Distribution doughnut chart
+- Complaints by Priority Level bar chart
+- Complaints by Department / Category bar chart
 
 ---
 
 ### 🗂️ Manage Complaints
-![Manage Complaints](public/screenshots/08-manage-complaints.png)
+
+[![View Complaints](https://img.shields.io/badge/▶%20View%20Live-Manage%20Complaints-b45309?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/admin/complaints)
+
+- Search bar + Category / Status / Priority filters
+- Full complaint table with resident name, flat, days open, overdue flag
+- One-click Manage action per complaint
 
 ---
 
 ### 📣 Manage Society Notices
-![Manage Notices](public/screenshots/09-manage-notices.png)
+
+[![View Notices](https://img.shields.io/badge/▶%20View%20Live-Manage%20Notices-0f766e?style=for-the-badge&logo=vercel&logoColor=white)](https://society-maintenance-track.vercel.app/#/admin/notices)
+
+- + New Notice button
+- Title, Priority badge, Description, Created Date, Author columns
+- Edit & Delete actions per notice
 
 ---
 
