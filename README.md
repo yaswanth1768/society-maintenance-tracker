@@ -218,9 +218,53 @@ vercel
 
 ---
 
+
 ## 📸 Screenshots
 
-> Coming soon — feel free to add your own screenshots here!
+> Save your screenshots as the filenames below inside `public/screenshots/` and they'll display here automatically.
+
+### 🔐 Login Page
+![Login Page](public/screenshots/01-login.png)
+
+---
+
+### 👤 Resident Dashboard
+![Resident Dashboard](public/screenshots/02-resident-dashboard.png)
+
+---
+
+### 📋 Society Rules & Code of Conduct
+![Society Rules Modal](public/screenshots/03-rules-modal.png)
+
+---
+
+### 📣 Notice Board
+![Notice Board](public/screenshots/04-notice-board.png)
+
+---
+
+### 📝 New Complaint Form
+![New Complaint](public/screenshots/05-new-complaint.png)
+
+---
+
+### 🛡️ Admin Dashboard
+![Admin Dashboard](public/screenshots/06-admin-dashboard.png)
+
+---
+
+### 📊 Reports & Analytics
+![Reports & Analytics](public/screenshots/07-reports-analytics.png)
+
+---
+
+### 🗂️ Manage Complaints
+![Manage Complaints](public/screenshots/08-manage-complaints.png)
+
+---
+
+### 📣 Manage Society Notices
+![Manage Notices](public/screenshots/09-manage-notices.png)
 
 ---
 
