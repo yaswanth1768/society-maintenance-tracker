@@ -1,12 +1,23 @@
 <div align="center">
 
+<br/>
+
+> ### 🚀 &nbsp;[**LIVE — society-maintenance-track.vercel.app**](https://society-maintenance-track.vercel.app/)&nbsp; 🚀
+> *Click to open the deployed app — no setup needed!*
+
+<br/>
+
+[![🌐 Open Live App](https://img.shields.io/badge/🌐%20Open%20Live%20App-society--maintenance--track.vercel.app-6366f1?style=for-the-badge&logo=vercel&logoColor=white&labelColor=0f0f23)](https://society-maintenance-track.vercel.app/)
+
+<br/>
+
 <img src="society-bg.jpg" alt="Society Maintenance Tracker" width="100%" style="border-radius: 12px; margin-bottom: 16px;" />
 
 # 🏢 Society Maintenance Tracker
 
 **A full-featured, role-based society management web app — built with zero frameworks, pure Vanilla JS.**
 
-[![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-Visit%20Now-6366f1?style=for-the-badge&logo=vercel)](https://your-app.vercel.app)
+[![Live Demo](https://img.shields.io/badge/▶%20Live%20Demo-Visit%20Now-6366f1?style=for-the-badge&logo=vercel)](https://society-maintenance-track.vercel.app/)
 [![Built With](https://img.shields.io/badge/Built%20With-Vanilla%20JS%20%2B%20Vite-f59e0b?style=for-the-badge&logo=javascript)](https://vitejs.dev)
 [![Deployed On](https://img.shields.io/badge/Deployed%20On-Vercel-000000?style=for-the-badge&logo=vercel)](https://vercel.com)
 [![License](https://img.shields.io/badge/License-MIT-22c55e?style=for-the-badge)](LICENSE)
