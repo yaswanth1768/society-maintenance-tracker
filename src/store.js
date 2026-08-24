@@ -65,3 +65,7 @@ export function isAdmin() {
   const user = getCurrentUser();
   return user && user.role === 'admin';
 }
+
+export function logout() {
+  setCurrentUser(null);
+}

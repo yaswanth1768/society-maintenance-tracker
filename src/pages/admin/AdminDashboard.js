@@ -1,8 +1,8 @@
-// ===== Admin Dashboard =====
+// ===== Distinctive Admin Command Center Dashboard Page =====
 import { mountAppShell } from '../../components/layout/AppShell.js';
 import { icon } from '../../assets/icons.js';
 import { apiGetDashboardStats, apiGetComplaints } from '../../api.js';
-import { formatDate, truncate, statusClass, priorityClass } from '../../utils.js';
+import { formatDate, statusClass, priorityClass } from '../../utils.js';
 import { navigate } from '../../router.js';
 import { showModal } from '../../components/ui/Modal.js';
 
@@ -16,19 +16,15 @@ function destroyCharts() {
 
 export async function renderAdminDashboard() {
   destroyCharts();
-  const content = mountAppShell('Dashboard');
+  const content = mountAppShell('Admin Dashboard');
   
   content.innerHTML = `
     <div class="page-header">
-      <h2 class="page-header__title">Maintenance Overview</h2>
-      <p class="page-header__subtitle">Monitor complaints, response progress, and overdue issues.</p>
+      <h2 class="page-header__title">Operations Command Center</h2>
+      <p class="page-header__subtitle">Real-time society maintenance metrics, SLA compliance, and facility health.</p>
     </div>
     <div class="stat-grid stat-grid--5">
       ${Array(5).fill('<div class="skeleton skeleton--card"></div>').join('')}
-    </div>
-    <div class="chart-grid">
-      <div class="skeleton skeleton--card" style="height: 320px;"></div>
-      <div class="skeleton skeleton--card" style="height: 320px;"></div>
     </div>
   `;
   
@@ -41,104 +37,130 @@ export async function renderAdminDashboard() {
     const recentOverdue = overdueComplaints.slice(0, 5);
     
     content.innerHTML = `
+      <!-- Admin Header Bar -->
       <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4);">
         <div>
-          <h2 class="page-header__title">Maintenance Overview</h2>
-          <p class="page-header__subtitle">Monitor complaints, response progress, and overdue issues.</p>
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: var(--color-green-light); border: 1px solid var(--color-green-border); color: var(--color-green); padding: 3px 10px; border-radius: 9999px; font-size: var(--font-size-xs); font-weight: 600; margin-bottom: var(--space-2);">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: var(--color-green);"></span>
+            Facility Operations Active
+          </div>
+          <h2 class="page-header__title">Operations Command Center</h2>
+          <p class="page-header__subtitle">Monitor maintenance requests, audit resolution rates, and handle overdue SLAs.</p>
         </div>
-        <button class="btn btn--secondary" id="admin-view-rules-btn" style="display: flex; align-items: center; gap: var(--space-2);">
-          ${icon('bookOpen', 16)}
-          <span>Society Bylaws & Guidelines</span>
-        </button>
+        <div style="display: flex; gap: var(--space-3); flex-wrap: wrap;">
+          <a href="#/admin/notices" class="btn btn--secondary">
+            ${icon('megaphone', 16)} Broadcast Notice
+          </a>
+          <a href="#/admin/complaints" class="btn btn--primary">
+            ${icon('clipboardList', 16)} Manage Tickets
+          </a>
+        </div>
       </div>
       
-      <!-- Stat Cards -->
+      <!-- KPI Metric Cards Grid -->
       <div class="stat-grid stat-grid--5">
-        <div class="stat-card">
+        <div class="stat-card stat-card--purple">
           <div class="stat-card__content">
             <div class="stat-card__value">${stats.total}</div>
-            <div class="stat-card__label">Total Complaints</div>
+            <div class="stat-card__label">Total Recorded</div>
           </div>
-          <div class="stat-card__icon stat-card__icon--gray">${icon('clipboardList', 20)}</div>
+          <div class="stat-card__icon stat-card__icon--gray">${icon('clipboardList', 22)}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card--blue">
           <div class="stat-card__content">
-            <div class="stat-card__value">${stats.open}</div>
-            <div class="stat-card__label">Open</div>
+            <div class="stat-card__value" style="color: var(--color-blue);">${stats.open}</div>
+            <div class="stat-card__label">Open (Pending)</div>
           </div>
-          <div class="stat-card__icon stat-card__icon--blue">${icon('inbox', 20)}</div>
+          <div class="stat-card__icon stat-card__icon--blue">${icon('inbox', 22)}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card--amber">
           <div class="stat-card__content">
-            <div class="stat-card__value">${stats.inProgress}</div>
+            <div class="stat-card__value" style="color: var(--color-amber);">${stats.inProgress}</div>
             <div class="stat-card__label">In Progress</div>
           </div>
-          <div class="stat-card__icon stat-card__icon--amber">${icon('clock', 20)}</div>
+          <div class="stat-card__icon stat-card__icon--amber">${icon('clock', 22)}</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card stat-card--green">
           <div class="stat-card__content">
-            <div class="stat-card__value">${stats.resolved}</div>
-            <div class="stat-card__label">Resolved</div>
+            <div class="stat-card__value" style="color: var(--color-green);">${stats.resolved}</div>
+            <div class="stat-card__label">Resolved (Closed)</div>
           </div>
-          <div class="stat-card__icon stat-card__icon--green">${icon('checkCircle', 20)}</div>
+          <div class="stat-card__icon stat-card__icon--green">${icon('checkCircle', 22)}</div>
         </div>
-        <div class="stat-card" ${stats.overdue > 0 ? 'style="border-color: var(--color-red); border-width: 1px;"' : ''}>
+        <div class="stat-card stat-card--red" ${stats.overdue > 0 ? 'style="border-color: var(--color-red-border); background: var(--color-red-light);"' : ''}>
           <div class="stat-card__content">
-            <div class="stat-card__value" ${stats.overdue > 0 ? 'style="color: var(--color-red);"' : ''}>${stats.overdue}</div>
-            <div class="stat-card__label">Overdue</div>
+            <div class="stat-card__value" style="color: var(--color-red);">${stats.overdue}</div>
+            <div class="stat-card__label">SLA Overdue</div>
           </div>
-          <div class="stat-card__icon stat-card__icon--red">${icon('alertTriangle', 20)}</div>
+          <div class="stat-card__icon stat-card__icon--red">${icon('alertTriangle', 22)}</div>
         </div>
       </div>
       
-      <!-- Charts -->
+      <!-- Analytics Charts Section -->
       <div class="chart-grid">
         <div class="chart-card">
-          <h3 class="chart-card__title">Complaints by Status</h3>
+          <h3 class="chart-card__title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Tickets by Status</span>
+            <span style="font-size: var(--font-size-xs); font-weight: 500; color: var(--color-gray-400);">Current Cycle</span>
+          </h3>
           <div class="chart-card__body">
             <canvas id="status-chart"></canvas>
           </div>
         </div>
         <div class="chart-card">
-          <h3 class="chart-card__title">Complaints by Category</h3>
+          <h3 class="chart-card__title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span>Tickets by Category</span>
+            <span style="font-size: var(--font-size-xs); font-weight: 500; color: var(--color-gray-400);">Department Breakdown</span>
+          </h3>
           <div class="chart-card__body">
             <canvas id="category-chart"></canvas>
           </div>
         </div>
       </div>
       
-      <!-- Overdue Complaints -->
+      <!-- Priority Overdue SLA Queue -->
       <div class="section">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
-          <h3 class="section__title" style="margin-bottom: 0;">Overdue Complaints</h3>
-          ${recentOverdue.length > 0 ? '<a href="#/admin/overdue" class="link-btn">View all</a>' : ''}
+          <h3 class="section__title" style="margin-bottom: 0;">
+            ${icon('alertTriangle', 20)} Urgent & Overdue Tickets (${overdueComplaints.length})
+          </h3>
+          <a href="#/admin/overdue" class="link-btn" style="font-weight: 600;">Manage SLA Configuration →</a>
         </div>
         ${recentOverdue.length > 0 ? `
           <div class="data-table-wrapper">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Complaint ID</th>
-                  <th>Resident</th>
+                  <th>Ticket ID</th>
+                  <th>Resident & Unit</th>
                   <th>Category</th>
                   <th>Priority</th>
-                  <th>Created</th>
-                  <th>Days Open</th>
+                  <th>Submitted</th>
+                  <th>SLA Breach Duration</th>
                   <th>Status</th>
-                  <th>Action</th>
+                  <th style="text-align: right;">Action</th>
                 </tr>
               </thead>
               <tbody>
                 ${recentOverdue.map(c => `
-                  <tr>
+                  <tr style="background: var(--color-red-light);">
                     <td><span class="complaint-id" data-id="${c.id}">#${c.id}</span></td>
-                    <td>${c.resident_name || '—'}</td>
+                    <td>
+                      <strong style="color: var(--color-gray-900);">${c.resident_name || '—'}</strong>
+                      <span style="font-size: var(--font-size-xs); color: var(--color-gray-500); display: block;">Flat ${c.resident_flat || ''}</span>
+                    </td>
                     <td>${c.category}</td>
                     <td><span class="badge badge--${priorityClass(c.priority)}">${c.priority}</span></td>
-                    <td style="white-space:nowrap;">${formatDate(c.created_at)}</td>
-                    <td class="overdue-cell">${c.days_open} days</td>
+                    <td style="white-space:nowrap; font-size: var(--font-size-xs); color: var(--color-gray-500);">${formatDate(c.created_at)}</td>
+                    <td>
+                      <span class="badge badge--overdue" style="font-weight: 700;">${c.days_open} days open</span>
+                    </td>
                     <td><span class="badge badge--${statusClass(c.status)}">${c.status}</span></td>
-                    <td><button class="btn btn--ghost btn--sm" data-admin-view="${c.id}">${icon('eye', 14)} Manage</button></td>
+                    <td style="text-align: right;">
+                      <button class="btn btn--primary btn--sm" data-admin-view="${c.id}">
+                        ${icon('wrench', 14)} Resolve Now
+                      </button>
+                    </td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -146,18 +168,18 @@ export async function renderAdminDashboard() {
           </div>
         ` : `
           <div class="card card--padded">
-            <div class="empty-state" style="padding: var(--space-6);">
+            <div class="empty-state" style="padding: var(--space-8);">
               <div class="empty-state__icon" style="color: var(--color-green);">${icon('checkCircle', 48)}</div>
-              <div class="empty-state__title">No overdue complaints</div>
-              <div class="empty-state__text">All complaints are being addressed within the threshold period.</div>
+              <div class="empty-state__title">Zero SLA Breaches</div>
+              <div class="empty-state__text">All open maintenance tickets are currently operating within the configured SLA threshold period.</div>
             </div>
           </div>
         `}
       </div>
     `;
     
-    // Render charts
-    renderCharts(stats);
+    // Render Chart.js charts
+    await renderCharts(stats);
     
     // Click handlers
     content.querySelectorAll('[data-id]').forEach(el => {
@@ -166,37 +188,13 @@ export async function renderAdminDashboard() {
     content.querySelectorAll('[data-admin-view]').forEach(el => {
       el.addEventListener('click', () => navigate(`/admin/complaints/${el.dataset.adminView}`));
     });
-    
-    document.getElementById('admin-view-rules-btn')?.addEventListener('click', () => {
-      showModal({
-        title: 'Society Bylaws & Operational Rules',
-        body: `
-          <div style="max-height: 60vh; overflow-y: auto;">
-            <p style="font-size: var(--font-size-sm); color: var(--color-gray-600); margin-bottom: var(--space-4);">
-              Official society operational guidelines enforced across all towers and resident units:
-            </p>
-            <ul style="list-style: disc; padding-left: var(--space-4); font-size: var(--font-size-xs); color: var(--color-gray-700); display: flex; flex-direction: column; gap: var(--space-2);">
-              <li><strong>Quiet Hours:</strong> 10:00 PM – 6:00 AM daily across all blocks.</li>
-              <li><strong>SLA Target:</strong> High priority issues within 24h, Medium within 3d, Low within 5d.</li>
-              <li><strong>Maintenance Dues:</strong> Due on 5th; late penalty ₹500 auto-charged on 15th.</li>
-              <li><strong>Vendor Gate Entry:</strong> Service personnel require OTP security pass verification.</li>
-              <li><strong>Renovations:</strong> Requires 7-day prior approval from managing committee.</li>
-            </ul>
-          </div>
-        `,
-        footer: '<button class="btn btn--primary" id="admin-rules-ok-btn">Done</button>'
-      });
-      document.getElementById('admin-rules-ok-btn')?.addEventListener('click', () => {
-        document.querySelector('.modal-overlay')?.remove();
-      });
-    });
 
     return () => {
       destroyCharts();
     };
     
   } catch (err) {
-    content.innerHTML += `<div class="inline-error">${icon('alertCircle', 16)} Unable to load dashboard data. Please try again.</div>`;
+    content.innerHTML += `<div class="inline-error">${icon('alertCircle', 16)} Unable to load admin overview: ${err.message}</div>`;
   }
 }
 
@@ -204,7 +202,7 @@ async function renderCharts(stats) {
   const { Chart, DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend } = await import('chart.js');
   Chart.register(DoughnutController, ArcElement, BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
   
-  // Status Doughnut Chart
+  // Doughnut Status Distribution Chart
   const statusCtx = document.getElementById('status-chart');
   if (statusCtx) {
     statusChart = new Chart(statusCtx, {
@@ -213,15 +211,15 @@ async function renderCharts(stats) {
         labels: ['Open', 'In Progress', 'Resolved'],
         datasets: [{
           data: [stats.open, stats.inProgress, stats.resolved],
-          backgroundColor: ['#3b82f6', '#d97706', '#16a34a'],
+          backgroundColor: ['#3b82f6', '#f59e0b', '#10b981'],
           borderWidth: 0,
-          spacing: 2
+          spacing: 3
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
+        cutout: '70%',
         plugins: {
           legend: {
             position: 'bottom',
@@ -229,22 +227,15 @@ async function renderCharts(stats) {
               padding: 16,
               usePointStyle: true,
               pointStyleWidth: 10,
-              font: { family: 'Inter', size: 12 }
+              font: { family: 'Outfit, sans-serif', size: 12 }
             }
-          },
-          tooltip: {
-            backgroundColor: '#1e293b',
-            titleFont: { family: 'Inter', size: 13 },
-            bodyFont: { family: 'Inter', size: 12 },
-            padding: 10,
-            cornerRadius: 6
           }
         }
       }
     });
   }
   
-  // Category Bar Chart
+  // Bar Category Breakdown Chart
   const catCtx = document.getElementById('category-chart');
   if (catCtx) {
     const cats = stats.categories || {};
@@ -258,36 +249,24 @@ async function renderCharts(stats) {
         datasets: [{
           label: 'Complaints',
           data: categoryData,
-          backgroundColor: '#3b82f6',
-          borderRadius: 4,
-          barPercentage: 0.6
+          backgroundColor: '#6366f1',
+          borderRadius: 6,
+          barPercentage: 0.55
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1e293b',
-            titleFont: { family: 'Inter', size: 13 },
-            bodyFont: { family: 'Inter', size: 12 },
-            padding: 10,
-            cornerRadius: 6
-          }
-        },
+        plugins: { legend: { display: false } },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { family: 'Inter', size: 11 } }
+            ticks: { font: { family: 'Outfit, sans-serif', size: 11 } }
           },
           y: {
             beginAtZero: true,
-            ticks: {
-              stepSize: 1,
-              font: { family: 'Inter', size: 11 }
-            },
-            grid: { color: 'rgba(0,0,0,0.05)' }
+            ticks: { stepSize: 1, font: { family: 'Outfit, sans-serif', size: 11 } },
+            grid: { color: 'rgba(0,0,0,0.04)' }
           }
         }
       }

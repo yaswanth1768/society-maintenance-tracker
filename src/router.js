@@ -16,6 +16,10 @@ export function getHash() {
   return window.location.hash.slice(1) || '/login';
 }
 
+export function getHashPath() {
+  return getHash();
+}
+
 export function getRouteParams() {
   const hash = getHash();
   for (const route of routes) {

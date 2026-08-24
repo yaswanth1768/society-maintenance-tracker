@@ -11,7 +11,8 @@ const STORAGE_KEYS = {
   notices: 'smt_notices',
   settings: 'smt_settings',
   notifications: 'smt_notifications',
-  emails: 'smt_emails'
+  emails: 'smt_emails',
+  workers: 'smt_workers'
 };
 
 // Helper to generate dynamic past ISO dates
@@ -202,6 +203,113 @@ const SEED_NOTIFICATIONS = [
   }
 ];
 
+const SEED_WORKERS = [
+  {
+    id: 'WRK-001',
+    name: 'Ramesh Kumar',
+    category: 'Plumber',
+    phone: '+91 98450 12345',
+    address: 'Shop #4, Main Market, Sector 1',
+    timing: '8:00 AM – 8:00 PM',
+    rating: '4.9',
+    is_verified: true,
+    speciality: 'Pipe leakage, bathroom fittings, tank motor repair, blockage clearing',
+    added_by: 'Society Office',
+    created_at: getRelativeDate(40)
+  },
+  {
+    id: 'WRK-002',
+    name: 'Suresh Sharma',
+    category: 'Electrician',
+    phone: '+91 98450 67890',
+    address: '2nd Cross, Near Society Bus Stop',
+    timing: '8:30 AM – 9:00 PM',
+    rating: '4.8',
+    is_verified: true,
+    speciality: 'Wiring, MCB tripping, fan installation, geyser & inverter repair',
+    added_by: 'Yaswanth (A-404)',
+    created_at: getRelativeDate(35)
+  },
+  {
+    id: 'WRK-003',
+    name: 'Manjunath V',
+    category: 'Carpenter',
+    phone: '+91 98451 11223',
+    address: 'Timber Yard Lane, Behind Metro Station',
+    timing: '9:00 AM – 7:30 PM',
+    rating: '4.7',
+    is_verified: true,
+    speciality: 'Door locks, modular kitchen cabinets, hinge fix, furniture assembly',
+    added_by: 'Priya (B-302)',
+    created_at: getRelativeDate(30)
+  },
+  {
+    id: 'WRK-004',
+    name: 'Rajesh Verma',
+    category: 'Painter',
+    phone: '+91 98452 33445',
+    address: 'Color World, Commercial Complex, Sector 3',
+    timing: '8:30 AM – 6:30 PM',
+    rating: '4.9',
+    is_verified: true,
+    speciality: 'Waterproofing, interior emulsion, stencil texture, exterior touchup',
+    added_by: 'Amit (C-105)',
+    created_at: getRelativeDate(25)
+  },
+  {
+    id: 'WRK-005',
+    name: 'Anitha Devi',
+    category: 'House Cleaning',
+    phone: '+91 98453 55667',
+    address: 'Block A Service Quarters, Society Campus',
+    timing: '7:00 AM – 6:00 PM',
+    rating: '4.9',
+    is_verified: true,
+    speciality: 'Deep kitchen cleaning, floor scrubbing, post-renovation cleanup',
+    added_by: 'Society Office',
+    created_at: getRelativeDate(20)
+  },
+  {
+    id: 'WRK-006',
+    name: 'Gopal Rao',
+    category: 'Appliance Repair',
+    phone: '+91 98454 77889',
+    address: 'Tech Care Hub, 1st Floor, Sector 2',
+    timing: '9:00 AM – 8:00 PM',
+    rating: '4.8',
+    is_verified: true,
+    speciality: 'AC gas refill, washing machine, refrigerator & microwave repair',
+    added_by: 'Deepa (A-201)',
+    created_at: getRelativeDate(18)
+  },
+  {
+    id: 'WRK-007',
+    name: 'Shiva Shankar',
+    category: 'Gardener',
+    phone: '+91 98455 99001',
+    address: 'Green Nursery Road, Outer Gate',
+    timing: '7:00 AM – 5:00 PM',
+    rating: '4.6',
+    is_verified: true,
+    speciality: 'Balcony plants care, grass trimming, fertilizer & pot pruning',
+    added_by: 'Society Office',
+    created_at: getRelativeDate(15)
+  },
+  {
+    id: 'WRK-008',
+    name: 'Usman Ali',
+    category: 'Masonry & Tiles',
+    phone: '+91 98456 22334',
+    address: 'Brick Works Depot, Ring Road',
+    timing: '8:00 AM – 6:00 PM',
+    rating: '4.7',
+    is_verified: true,
+    speciality: 'Floor tile replacement, wall crack grouting, balcony dampness repair',
+    added_by: 'Society Office',
+    created_at: getRelativeDate(12)
+  }
+];
+
 // ===== Database Initializer =====
 function initDB() {
   if (!localStorage.getItem(STORAGE_KEYS.users)) {
@@ -224,6 +332,9 @@ function initDB() {
   }
   if (!localStorage.getItem(STORAGE_KEYS.emails)) {
     localStorage.setItem(STORAGE_KEYS.emails, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.workers)) {
+    localStorage.setItem(STORAGE_KEYS.workers, JSON.stringify(SEED_WORKERS));
   }
 }
 
@@ -766,6 +877,67 @@ export async function apiUpdateSettings(updates) {
   const updated = { ...settings, ...updates };
   localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(updated));
   return updated;
+}
+
+// ===== House Workers & Service Providers Directory APIs =====
+export async function apiGetWorkers(filters = {}) {
+  await delay(120);
+  const raw = localStorage.getItem(STORAGE_KEYS.workers);
+  let workers = raw ? JSON.parse(raw) : SEED_WORKERS;
+
+  if (filters.category && filters.category !== 'All') {
+    workers = workers.filter(w => w.category === filters.category);
+  }
+
+  if (filters.search) {
+    const q = filters.search.toLowerCase().trim();
+    workers = workers.filter(w => 
+      (w.name && w.name.toLowerCase().includes(q)) ||
+      (w.category && w.category.toLowerCase().includes(q)) ||
+      (w.phone && w.phone.toLowerCase().includes(q)) ||
+      (w.address && w.address.toLowerCase().includes(q)) ||
+      (w.speciality && w.speciality.toLowerCase().includes(q))
+    );
+  }
+
+  return workers;
+}
+
+export async function apiGetWorker(id) {
+  await delay(80);
+  const workers = JSON.parse(localStorage.getItem(STORAGE_KEYS.workers)) || SEED_WORKERS;
+  const worker = workers.find(w => w.id === id);
+  if (!worker) throw new Error(`Service worker with ID ${id} not found.`);
+  return worker;
+}
+
+export async function apiCreateWorker(data) {
+  await delay(200);
+  const workers = JSON.parse(localStorage.getItem(STORAGE_KEYS.workers)) || SEED_WORKERS;
+  const newWorker = {
+    id: `WRK-${generateId(4)}`,
+    name: data.name,
+    category: data.category || 'Other',
+    phone: data.phone,
+    address: data.address || 'Local Community Service',
+    timing: data.timing || '8:00 AM – 7:00 PM',
+    rating: data.rating || '4.8',
+    is_verified: true,
+    speciality: data.speciality || 'General household maintenance & repair',
+    added_by: data.added_by || 'Resident Member',
+    created_at: new Date().toISOString()
+  };
+  workers.unshift(newWorker);
+  localStorage.setItem(STORAGE_KEYS.workers, JSON.stringify(workers));
+  return newWorker;
+}
+
+export async function apiDeleteWorker(id) {
+  await delay(150);
+  let workers = JSON.parse(localStorage.getItem(STORAGE_KEYS.workers)) || SEED_WORKERS;
+  workers = workers.filter(w => w.id !== id);
+  localStorage.setItem(STORAGE_KEYS.workers, JSON.stringify(workers));
+  return { success: true };
 }
 
 // ===== Initialization & Reset =====

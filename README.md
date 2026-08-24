@@ -33,12 +33,15 @@
 - **Status Lifecycle Audit Trail**: Full chronological timeline for each complaint with status badges, timestamps, actor names, and administrative remarks.
 - **Photo Lightbox**: Interactive full-resolution modal preview for uploaded complaint images.
 - **Notice Board**: View all society circulars with pinned **Important** announcements highlighted at the top.
+- **House Workers & Service Directory**: Browse verified local workers (plumbers, carpenters, painters, electricians, cleaners, appliance repair, gardeners, masonry) with ratings, direct phone call/copy actions, addresses, and operating hours.
+- **Add New Service Person**: Any member can recommend and add new trusted workers to the community directory.
 - **Society Rules & Regulations**: Community bylaws review and acknowledgment modal.
 - **Email & Notification Center**: Top-bar notification bell with unread badge counter, email preview modal (From, To, Subject, Timestamp, Body), and mark-as-read functionality.
 
 ### 🛡️ Admin Management Console
 - **Analytics Dashboard**: Real-time KPI summary cards, Chart.js Doughnut chart (Status distribution), Chart.js Bar chart (Complaints by category), and quick-access Overdue list.
 - **Filter & Search Complaints**: Filter by **Category**, **Status**, **Date** (Today, Last 7 Days, Last 30 Days, All), **Priority** (Low, Medium, High), **Overdue SLA flag**, or search across resident names, flats, categories, and descriptions.
+- **Workers Directory Management**: Full audit, search, addition, and deletion permissions over society service personnel.
 - **Deterministic Status Workflow**: Move complaints through `Open` → `In Progress` → `Resolved (Closed)` with required/optional audit remarks. Marking an issue `Resolved` officially closes it.
 - **Configurable SLA Overdue Detection**: Customize the overdue threshold in days (default: 5 days). Complaints exceeding the threshold dynamically surface at the top of the admin view with distinct red alert badges.
 - **Notice Board CRUD**: Publish new notices, toggle "Pin as Important" (triggers automated email broadcast to all residents), edit existing notices, and delete notices with confirmation modals.
@@ -111,8 +114,8 @@ society-maintenance-tracker/
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/kotarohith45/Society-Maintenance-Track.git
-   cd Society-Maintenance-Track
+   git clone https://github.com/yaswanth1768/society-maintenance-tracker.git
+   cd society-maintenance-tracker
    ```
 
 2. **Install dependencies**:
@@ -252,7 +255,23 @@ All API methods in `src/api.js` return standard ES6 Promises to mirror an asynch
 
 ---
 
-### 5. Analytics & Settings Endpoints
+---
+
+### 5. House Workers & Service Providers Directory Endpoints
+
+#### `apiGetWorkers(filters)`
+- **Description**: Retrieves list of verified household service workers with optional category and search filters.
+- **Parameters**: `category` *(optional)*, `search` *(optional)*.
+
+#### `apiCreateWorker({ name, category, phone, address, timing, rating, speciality, added_by })`
+- **Description**: Allows any resident or administrator to register and recommend a trusted service worker.
+
+#### `apiDeleteWorker(id)`
+- **Description**: Removes a service worker from the directory.
+
+---
+
+### 6. Analytics & Settings Endpoints
 
 #### `apiGetDashboardStats(residentId)`
 - **Description**: Computes metrics: `total`, `open`, `inProgress`, `resolved`, `overdue`, and `categories` breakdown.
@@ -294,21 +313,23 @@ The system architecture utilizes a normalized relational data model:
          │                          │ created_at             │
          │                          └────────────────────────┘
          │ 1:N
-         ▼
+         ├────────────────────────────────────────┐
+         ▼                                        ▼
 ┌────────────────────────┐          ┌────────────────────────┐
-│     notifications      │          │        notices         │
+│     notifications      │          │        workers         │
 ├────────────────────────┤          ├────────────────────────┤
 │ id (PK)                │          │ id (PK)                │
-│ user_id (FK:users)     │          │ title                  │
-│ recipient_email        │          │ description            │
-│ type                   │          │ is_important (boolean) │
-│ title                  │          │ created_by (FK:users)  │
-│ message                │          │ author_name            │
-│ is_read (boolean)      │          │ created_at             │
-│ email_subject          │          └────────────────────────┘
-│ email_body             │
-│ created_at             │
-└────────────────────────┘
+│ user_id (FK:users)     │          │ name                   │
+│ recipient_email        │          │ category (trade)       │
+│ type                   │          │ phone                  │
+│ title                  │          │ address                │
+│ message                │          │ timing                 │
+│ is_read (boolean)      │          │ rating                 │
+│ email_subject          │          │ is_verified (boolean)  │
+│ email_body             │          │ speciality             │
+│ created_at             │          │ added_by               │
+└────────────────────────┘          │ created_at             │
+                                    └────────────────────────┘
 ```
 
 ### Table Definitions
@@ -379,6 +400,21 @@ The system architecture utilizes a normalized relational data model:
 | `email_body` | TEXT | NOT NULL | Full formatted email body text |
 | `created_at` | TIMESTAMP | NOT NULL | Dispatch timestamp |
 
+#### 7. `workers`
+| Column | Type | Constraints | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | VARCHAR(32) | PRIMARY KEY | Unique worker ID (`WRK-001`) |
+| `name` | VARCHAR(128) | NOT NULL | Worker / Technician name |
+| `category` | VARCHAR(64) | NOT NULL | Trade (Plumber, Electrician, Carpenter, Painter, etc.) |
+| `phone` | VARCHAR(20) | NOT NULL | Contact telephone / WhatsApp |
+| `address` | VARCHAR(256) | NULLABLE | Shop address / operating area |
+| `timing` | VARCHAR(64) | NULLABLE | Operating hours (e.g. `8:00 AM – 8:00 PM`) |
+| `rating` | VARCHAR(8) | DEFAULT '4.8' | Community rating score |
+| `is_verified` | BOOLEAN | DEFAULT TRUE | Society verified status |
+| `speciality` | TEXT | NULLABLE | Scope of services handled |
+| `added_by` | VARCHAR(128) | NOT NULL | Recommending member / Admin |
+| `created_at` | TIMESTAMP | NOT NULL | Registration timestamp |
+
 ---
 
 ## 🧪 Verification & Testing Checklist
@@ -387,7 +423,8 @@ The system architecture utilizes a normalized relational data model:
 - [x] **Complaint Creation with Photo**: Upload drag-and-drop file validation (< 5MB) and preview removal.
 - [x] **Complaint Status Lifecycle**: Status moves from `Open` to `In Progress` to `Resolved` with immutable audit history.
 - [x] **Overdue SLA Surfacing**: Complaints open beyond threshold automatically surface at top of admin view.
-- [x] **Configurable Overdue Days**: Updating threshold in Admin Settings immediately recalculates overdue flags.
+- [x] **House Workers & Services Directory**: Search and filter plumbers, electricians, carpenters, painters with click-to-call.
+- [x] **Add New Service Person**: Interactive modal allowing any member to add trusted workers.
 - [x] **Pinned Important Notices**: Notices marked `Important` display with distinctive styling and pin to top.
 - [x] **Email & In-App Notification Hub**: Status transitions and important notices generate emails with full preview.
 - [x] **Interactive Analytics Dashboard**: Chart.js doughnut chart (status) and bar chart (category) render accurately.

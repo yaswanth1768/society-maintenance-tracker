@@ -1,4 +1,4 @@
-// ===== My Complaints Page =====
+// ===== Distinctive Resident Complaints Tracking Page =====
 import { mountAppShell } from '../../components/layout/AppShell.js';
 import { icon } from '../../assets/icons.js';
 import { getCurrentUser } from '../../store.js';
@@ -19,16 +19,16 @@ function renderFilters() {
     <div class="filter-bar">
       <div class="filter-bar__search">
         ${icon('search', 16)}
-        <input class="form-input" type="text" id="filter-search" placeholder="Search complaints…" value="${currentFilters.search}" />
+        <input class="form-input" type="text" id="filter-search" placeholder="Search my tickets by ID, category, or description…" value="${currentFilters.search}" />
       </div>
       <div class="filter-bar__select">
-        <select class="form-input form-select" id="filter-category">
+        <select class="form-input form-select" id="filter-category" title="Filter Category">
           ${CATEGORIES.map(c => `<option value="${c}" ${currentFilters.category === c ? 'selected' : ''}>${c === 'All' ? 'All Categories' : c}</option>`).join('')}
         </select>
       </div>
       <div class="filter-bar__select">
-        <select class="form-input form-select" id="filter-status">
-          ${STATUSES.map(s => `<option value="${s}" ${currentFilters.status === s ? 'selected' : ''}>${s === 'All' ? 'All Status' : s}</option>`).join('')}
+        <select class="form-input form-select" id="filter-status" title="Filter Status">
+          ${STATUSES.map(s => `<option value="${s}" ${currentFilters.status === s ? 'selected' : ''}>${s === 'All' ? 'All Statuses' : s}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -46,13 +46,13 @@ function renderTable(complaints, total) {
       <div class="card card--padded">
         <div class="empty-state">
           <div class="empty-state__icon">${icon('inbox', 48)}</div>
-          <div class="empty-state__title">No complaints found</div>
+          <div class="empty-state__title">No Tickets Found</div>
           <div class="empty-state__text">
             ${currentFilters.search || currentFilters.status !== 'All' || currentFilters.category !== 'All' 
-              ? 'No complaints match your current filters. Try adjusting your search criteria.' 
-              : "You haven't submitted any maintenance complaints yet."}
+              ? 'No complaints match your active filter criteria. Try resetting the filters.' 
+              : "You haven't submitted any maintenance requests yet."}
           </div>
-          <a href="#/complaints/new" class="btn btn--primary">${icon('plusCircle', 16)} Raise a Complaint</a>
+          <a href="#/complaints/new" class="btn btn--primary">${icon('plusCircle', 16)} Raise a Request</a>
         </div>
       </div>
     `;
@@ -63,36 +63,38 @@ function renderTable(complaints, total) {
       <table class="data-table" id="complaints-table">
         <thead>
           <tr>
-            <th>Complaint ID</th>
+            <th>Ticket ID</th>
             <th>Category</th>
-            <th>Description</th>
+            <th>Issue Description</th>
             <th>Priority</th>
             <th>Status</th>
-            <th>Created</th>
-            <th>Updated</th>
-            <th>Action</th>
+            <th>Submitted</th>
+            <th>Last Updated</th>
+            <th style="text-align: right;">Action</th>
           </tr>
         </thead>
         <tbody>
           ${pageComplaints.map(c => `
             <tr>
               <td><span class="complaint-id" data-id="${c.id}">#${c.id}</span></td>
-              <td>${c.category}</td>
+              <td><strong style="color: var(--color-gray-900);">${c.category}</strong></td>
               <td class="description-cell">${truncate(c.description, 50)}</td>
               <td><span class="badge badge--${priorityClass(c.priority)}">${c.priority}</span></td>
               <td>
                 <span class="badge badge--${statusClass(c.status)}">${c.status}</span>
                 ${c.is_overdue ? ' <span class="badge badge--overdue">Overdue</span>' : ''}
               </td>
-              <td style="white-space:nowrap;">${formatDate(c.created_at)}</td>
-              <td style="white-space:nowrap;">${formatDate(c.updated_at)}</td>
-              <td><button class="btn btn--ghost btn--sm" data-view-id="${c.id}">${icon('eye', 14)} View</button></td>
+              <td style="white-space:nowrap; font-size: var(--font-size-xs); color: var(--color-gray-500);">${formatDate(c.created_at)}</td>
+              <td style="white-space:nowrap; font-size: var(--font-size-xs); color: var(--color-gray-500);">${formatDate(c.updated_at)}</td>
+              <td style="text-align: right;">
+                <button class="btn btn--secondary btn--sm" data-view-id="${c.id}">${icon('eye', 14)} Track Timeline</button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       
-      <!-- Mobile Cards -->
+      <!-- Mobile Responsive Cards -->
       <div class="complaint-cards-mobile" id="complaints-cards-mobile">
         ${pageComplaints.map(c => `
           <div class="complaint-card" data-card-id="${c.id}">
@@ -100,7 +102,7 @@ function renderTable(complaints, total) {
               <span class="complaint-card__id" data-id="${c.id}">#${c.id}</span>
               <span class="badge badge--${statusClass(c.status)}">${c.status}</span>
             </div>
-            <div class="complaint-card__category">${c.category}</div>
+            <div class="complaint-card__category" style="font-weight: 600; color: var(--color-gray-900);">${c.category}</div>
             <div class="complaint-card__description">${truncate(c.description, 80)}</div>
             <div class="complaint-card__meta">
               <span class="badge badge--${priorityClass(c.priority)}">${c.priority}</span>
@@ -129,13 +131,13 @@ function renderPagination(total, totalPages) {
     <div class="pagination">
       <span class="pagination__info">Showing ${start}–${end} of ${total} complaints</span>
       <div class="pagination__controls">
-        <button class="pagination__btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
+        <button class="pagination__btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} aria-label="Previous Page">
           ${icon('chevronLeft', 16)}
         </button>
         ${pages.map(p => `
           <button class="pagination__btn ${p === currentPage ? 'pagination__btn--active' : ''}" data-page="${p}">${p}</button>
         `).join('')}
-        <button class="pagination__btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
+        <button class="pagination__btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Next Page">
           ${icon('chevronRight', 16)}
         </button>
       </div>
@@ -162,7 +164,7 @@ async function loadComplaints(content) {
     }
   } catch (err) {
     const listEl = document.getElementById('complaints-list');
-    if (listEl) listEl.innerHTML = `<div class="inline-error">${icon('alertCircle', 16)} Unable to load complaints. Please try again.</div>`;
+    if (listEl) listEl.innerHTML = `<div class="inline-error">${icon('alertCircle', 16)} Unable to load requests: ${err.message}</div>`;
   }
 }
 
@@ -181,7 +183,7 @@ function bindTableEvents(content) {
   });
   content.querySelectorAll('[data-page]').forEach(el => {
     el.addEventListener('click', () => {
-      const page = parseInt(el.dataset.page);
+      const page = parseInt(el.dataset.page, 10);
       if (page >= 1 && page !== currentPage) {
         currentPage = page;
         const listEl = document.getElementById('complaints-list');
@@ -221,24 +223,18 @@ export async function renderMyComplaints() {
     </div>
     <div class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4);">
       <div>
-        <h2 class="page-header__title">My Complaints</h2>
-        <p class="page-header__subtitle">View and track all your maintenance requests.</p>
+        <h2 class="page-header__title">My Maintenance Requests</h2>
+        <p class="page-header__subtitle">Track resolution milestones, view assigned technicians, and review status histories.</p>
       </div>
-      <a href="#/complaints/new" class="btn btn--primary">${icon('plusCircle', 16)} New Complaint</a>
+      <a href="#/complaints/new" class="btn btn--primary">${icon('plusCircle', 16)} New Request</a>
     </div>
     ${renderFilters()}
-    <div id="complaints-list">
-      <div class="card card--padded" style="text-align: center; padding: var(--space-8);"><div class="skeleton skeleton--card"></div><div class="skeleton skeleton--row mt-2"></div><div class="skeleton skeleton--row mt-1"></div></div>
-    </div>
+    <div id="complaints-list"></div>
   `;
   
-  // Back button handler
   document.getElementById('my-complaints-back-btn')?.addEventListener('click', () => navigate('/dashboard'));
-
-  // Load data
   await loadComplaints(content);
   
-  // Filter event handlers
   const debouncedSearch = debounce(() => {
     currentFilters.search = document.getElementById('filter-search')?.value || '';
     currentPage = 1;

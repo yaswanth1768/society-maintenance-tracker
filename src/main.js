@@ -21,6 +21,7 @@ import { renderAdminComplaintDetail } from './pages/admin/AdminComplaintDetail.j
 import { renderAdminOverdue } from './pages/admin/AdminOverdue.js';
 import { renderAdminNotices } from './pages/admin/AdminNotices.js';
 import { renderAdminReports } from './pages/admin/AdminReports.js';
+import { renderWorkersDirectory } from './pages/common/WorkersDirectory.js';
 
 // 1. Initialize local seed database
 initializeAPI();
@@ -37,6 +38,7 @@ addRoute('/complaints', renderMyComplaints, { requireAuth: true, role: 'resident
 addRoute('/complaints/new', renderNewComplaint, { requireAuth: true, role: 'resident' });
 addRoute('/complaints/:id', renderComplaintDetail, { requireAuth: true, role: 'resident' });
 addRoute('/notices', renderNoticeBoard, { requireAuth: true, role: 'resident' });
+addRoute('/workers', renderWorkersDirectory, { requireAuth: true, role: 'resident' });
 
 // Admin Routes
 addRoute('/admin/dashboard', renderAdminDashboard, { requireAuth: true, role: 'admin' });
@@ -44,6 +46,7 @@ addRoute('/admin/complaints', renderAdminComplaints, { requireAuth: true, role: 
 addRoute('/admin/complaints/:id', renderAdminComplaintDetail, { requireAuth: true, role: 'admin' });
 addRoute('/admin/overdue', renderAdminOverdue, { requireAuth: true, role: 'admin' });
 addRoute('/admin/notices', renderAdminNotices, { requireAuth: true, role: 'admin' });
+addRoute('/admin/workers', renderWorkersDirectory, { requireAuth: true, role: 'admin' });
 addRoute('/admin/reports', renderAdminReports, { requireAuth: true, role: 'admin' });
 
 // 3. Start Router

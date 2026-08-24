@@ -143,3 +143,5 @@ function openEmailDetailModal(notif, parentClose) {
     navigate(`/complaints/${notif.metadata.complaint_id}`);
   });
 }
+
+export const showNotificationModal = openNotificationCenterModal;
