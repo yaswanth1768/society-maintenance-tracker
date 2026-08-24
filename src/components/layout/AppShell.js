@@ -1,9 +1,12 @@
-// ===== Application Shell =====
-// Sidebar + Header + Mobile Nav + Content Area
+// ===== Application Shell Component =====
+// Sidebar + Header + Mobile Nav + Notification Hub Integration
+
 import { icon } from '../../assets/icons.js';
 import { getCurrentUser, isAdmin, setCurrentUser } from '../../store.js';
 import { navigate, getHash } from '../../router.js';
 import { getInitials } from '../../utils.js';
+import { apiGetUnreadNotificationCount } from '../../api.js';
+import { openNotificationCenterModal } from '../ui/NotificationModal.js';
 
 let sidebarOpen = false;
 
@@ -67,7 +70,7 @@ export function renderAppShell(pageTitle = '') {
   const mobileItems = navItems.slice(0, 4);
 
   return `
-    <!-- Sidebar -->
+    <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar__logo">
         <div class="sidebar__logo-icon">
@@ -80,7 +83,7 @@ export function renderAppShell(pageTitle = '') {
       </div>
       
       <nav class="sidebar__nav">
-        <div class="sidebar__nav-label">${user.role === 'admin' ? 'Administration' : 'Navigation'}</div>
+        <div class="sidebar__nav-label">${user.role === 'admin' ? 'Administration' : 'Resident Portal'}</div>
         ${navItems.map(item => `
           <a class="sidebar__nav-item ${isActive(item.path) ? 'sidebar__nav-item--active' : ''}" 
              data-nav-path="${item.path}" href="#${item.path}">
@@ -108,20 +111,23 @@ export function renderAppShell(pageTitle = '') {
     <!-- Sidebar Overlay (mobile) -->
     <div class="sidebar-overlay" id="sidebar-overlay"></div>
     
-    <!-- Main Wrapper -->
+    <!-- Main Application Area -->
     <div class="app-main-wrapper">
-      <!-- Header -->
+      <!-- Top Header -->
       <header class="header" id="app-header">
         <div class="header__left">
-          <button class="header__menu-btn" id="menu-toggle-btn">
+          <button class="header__menu-btn" id="menu-toggle-btn" aria-label="Toggle Navigation">
             ${icon('menu', 20)}
           </button>
           <h1 class="header__title" id="header-page-title">${pageTitle}</h1>
         </div>
         <div class="header__right">
-          <button class="header__icon-btn" id="header-notification-btn" title="Notifications">
+          <!-- Notification Bell & Unread Badge -->
+          <button class="header__icon-btn header__notification-btn" id="header-notification-btn" title="Notification Center & Emails">
             ${icon('bell', 20)}
+            <span class="header__notification-badge" id="header-unread-badge" style="display: none;">0</span>
           </button>
+          
           <button class="header__user-btn" id="header-user-btn">
             <div class="header__user-avatar">${initials}</div>
             <span class="header__user-name">${user.name}</span>
@@ -129,12 +135,12 @@ export function renderAppShell(pageTitle = '') {
         </div>
       </header>
       
-      <!-- Content -->
+      <!-- Page Content Mount -->
       <main class="app-content" id="page-content">
       </main>
     </div>
     
-    <!-- Mobile Bottom Nav -->
+    <!-- Mobile Bottom Navigation -->
     <nav class="mobile-nav" id="mobile-nav">
       <div class="mobile-nav__items">
         ${mobileItems.map(item => `
@@ -154,16 +160,47 @@ export function mountAppShell(pageTitle) {
   app.className = 'app-layout';
   app.innerHTML = renderAppShell(pageTitle);
   
-  // Event listeners
+  const user = getCurrentUser();
+
+  // Update notification badge count
+  async function refreshBadgeCount() {
+    if (!user) return;
+    const count = await apiGetUnreadNotificationCount(user.role === 'resident' ? user.id : null);
+    const badgeEl = document.getElementById('header-unread-badge');
+    if (badgeEl) {
+      if (count > 0) {
+        badgeEl.textContent = count > 99 ? '99+' : count;
+        badgeEl.style.display = 'flex';
+      } else {
+        badgeEl.style.display = 'none';
+      }
+    }
+  }
+
+  refreshBadgeCount();
+
+  // Notification button click handler
+  document.getElementById('header-notification-btn')?.addEventListener('click', () => {
+    openNotificationCenterModal(user);
+  });
+
+  // Listen for real-time notification events
+  const notifListener = () => refreshBadgeCount();
+  window.addEventListener('smt_notification_received', notifListener);
+  window.addEventListener('smt_notification_updated', notifListener);
+
+  // Event listeners for shell navigation
   const menuBtn = document.getElementById('menu-toggle-btn');
   const overlay = document.getElementById('sidebar-overlay');
   const logoutBtn = document.getElementById('sidebar-logout-btn');
+  const userBtn = document.getElementById('header-user-btn');
   
   if (menuBtn) menuBtn.addEventListener('click', toggleSidebar);
   if (overlay) overlay.addEventListener('click', closeSidebar);
   if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+  if (userBtn) userBtn.addEventListener('click', handleLogout);
   
-  // Close sidebar on nav click (mobile)
+  // Close sidebar on navigation item click (mobile)
   document.querySelectorAll('[data-nav-path]').forEach(el => {
     el.addEventListener('click', () => {
       closeSidebar();

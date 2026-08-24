@@ -1,6 +1,6 @@
-// ===== Mock REST API Layer =====
-// Mirrors the spec's API endpoints, uses localStorage for persistence
-// All functions return Promises to simulate async behavior
+// ===== Centralized REST API & Storage Service Layer =====
+// Handles asynchronous data operations, role authentication, status lifecycles,
+// overdue calculations, audit trail recording, and email/notification dispatch.
 
 import { generateId, daysBetween } from './utils.js';
 
@@ -10,10 +10,11 @@ const STORAGE_KEYS = {
   history: 'smt_history',
   notices: 'smt_notices',
   settings: 'smt_settings',
-  notifications: 'smt_notifications'
+  notifications: 'smt_notifications',
+  emails: 'smt_emails'
 };
 
-// ===== Seed Data =====
+// Helper to generate dynamic past ISO dates
 function getRelativeDate(daysAgo, hours = 10, minutes = 30) {
   const d = new Date();
   d.setDate(d.getDate() - daysAgo);
@@ -21,8 +22,9 @@ function getRelativeDate(daysAgo, hours = 10, minutes = 30) {
   return d.toISOString();
 }
 
+// ===== Initial Seed Data =====
 const SEED_USERS = [
-  { id: 'USR-001', name: 'Rohith Kumar', email: 'rohith@example.com', password: 'password123', role: 'resident', flat: 'A-404', phone: '9876543210', created_at: getRelativeDate(60) },
+  { id: 'USR-001', name: 'Yaswanth Kumar', email: 'yaswanth@example.com', password: 'password123', role: 'resident', flat: 'A-404', phone: '9876543210', created_at: getRelativeDate(60) },
   { id: 'USR-002', name: 'Priya Sharma', email: 'priya@example.com', password: 'password123', role: 'resident', flat: 'B-302', phone: '9876543211', created_at: getRelativeDate(55) },
   { id: 'USR-003', name: 'Amit Patel', email: 'amit@example.com', password: 'password123', role: 'resident', flat: 'C-105', phone: '9876543212', created_at: getRelativeDate(50) },
   { id: 'USR-004', name: 'Society Admin', email: 'admin@society.com', password: 'admin123', role: 'admin', flat: 'Office', phone: '9876543200', created_at: getRelativeDate(90) },
@@ -94,64 +96,64 @@ const SEED_COMPLAINTS = [
 
 const SEED_HISTORY = [
   // CMP-1042
-  { id: 'H-001', complaint_id: 'CMP-1042', status: 'Open', actor_id: 'USR-001', actor_name: 'Rohith Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(1, 10, 30) },
-  { id: 'H-002', complaint_id: 'CMP-1042', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Maintenance team assigned. Plumber scheduled for tomorrow morning.', created_at: getRelativeDate(0, 14, 15) },
+  { id: 'H-001', complaint_id: 'CMP-1042', status: 'Open', actor_id: 'USR-001', actor_name: 'Yaswanth Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(1, 10, 30) },
+  { id: 'H-002', complaint_id: 'CMP-1042', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Maintenance team assigned. Plumber scheduled for inspection.', created_at: getRelativeDate(0, 14, 15) },
   // CMP-1041
   { id: 'H-003', complaint_id: 'CMP-1041', status: 'Open', actor_id: 'USR-002', actor_name: 'Priya Sharma', note: 'Complaint submitted by resident.', created_at: getRelativeDate(2, 9, 0) },
   // CMP-1040
-  { id: 'H-004', complaint_id: 'CMP-1040', status: 'Open', actor_id: 'USR-001', actor_name: 'Rohith Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(3, 8, 45) },
-  { id: 'H-005', complaint_id: 'CMP-1040', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Lift maintenance company contacted. Inspection scheduled.', created_at: getRelativeDate(2, 16, 30) },
+  { id: 'H-004', complaint_id: 'CMP-1040', status: 'Open', actor_id: 'USR-001', actor_name: 'Yaswanth Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(3, 8, 45) },
+  { id: 'H-005', complaint_id: 'CMP-1040', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Lift vendor technician contacted. Replacement cable ordered.', created_at: getRelativeDate(2, 16, 30) },
   // CMP-1039
   { id: 'H-006', complaint_id: 'CMP-1039', status: 'Open', actor_id: 'USR-003', actor_name: 'Amit Patel', note: 'Complaint submitted by resident.', created_at: getRelativeDate(6, 11, 20) },
   // CMP-1038
   { id: 'H-007', complaint_id: 'CMP-1038', status: 'Open', actor_id: 'USR-005', actor_name: 'Deepa Nair', note: 'Complaint submitted by resident.', created_at: getRelativeDate(7, 7, 30) },
   // CMP-1037
   { id: 'H-008', complaint_id: 'CMP-1037', status: 'Open', actor_id: 'USR-002', actor_name: 'Priya Sharma', note: 'Complaint submitted by resident.', created_at: getRelativeDate(10, 6, 0) },
-  { id: 'H-009', complaint_id: 'CMP-1037', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Plumbing team checking water pressure issue.', created_at: getRelativeDate(9, 10, 0) },
-  { id: 'H-010', complaint_id: 'CMP-1037', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Water pressure issue fixed. Motor valve was adjusted.', created_at: getRelativeDate(7, 15, 0) },
+  { id: 'H-009', complaint_id: 'CMP-1037', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Plumbing team checking main pressure regulator valve.', created_at: getRelativeDate(9, 10, 0) },
+  { id: 'H-010', complaint_id: 'CMP-1037', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Water pressure issue fixed. Motor booster valve adjusted.', created_at: getRelativeDate(7, 15, 0) },
   // CMP-1036
-  { id: 'H-011', complaint_id: 'CMP-1036', status: 'Open', actor_id: 'USR-001', actor_name: 'Rohith Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(15, 14, 0) },
-  { id: 'H-012', complaint_id: 'CMP-1036', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Tile replacement work ordered.', created_at: getRelativeDate(13, 9, 0) },
-  { id: 'H-013', complaint_id: 'CMP-1036', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Tiles replaced and area cleaned. Verified by maintenance supervisor.', created_at: getRelativeDate(10, 11, 0) },
+  { id: 'H-011', complaint_id: 'CMP-1036', status: 'Open', actor_id: 'USR-001', actor_name: 'Yaswanth Kumar', note: 'Complaint submitted by resident.', created_at: getRelativeDate(15, 14, 0) },
+  { id: 'H-012', complaint_id: 'CMP-1036', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Tile replacement masonry team scheduled.', created_at: getRelativeDate(13, 9, 0) },
+  { id: 'H-013', complaint_id: 'CMP-1036', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Tiles replaced and waterproof sealant applied.', created_at: getRelativeDate(10, 11, 0) },
   // CMP-1035
   { id: 'H-014', complaint_id: 'CMP-1035', status: 'Open', actor_id: 'USR-003', actor_name: 'Amit Patel', note: 'Complaint submitted by resident.', created_at: getRelativeDate(20, 9, 30) },
-  { id: 'H-015', complaint_id: 'CMP-1035', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Plumber assigned for drain cleaning.', created_at: getRelativeDate(19, 11, 0) },
-  { id: 'H-016', complaint_id: 'CMP-1035', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Drain cleaned and water flow restored.', created_at: getRelativeDate(17, 16, 0) },
+  { id: 'H-015', complaint_id: 'CMP-1035', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Plumber assigned for drainage clearing.', created_at: getRelativeDate(19, 11, 0) },
+  { id: 'H-016', complaint_id: 'CMP-1035', status: 'Resolved', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'Drain cleared and flow tested successfully.', created_at: getRelativeDate(17, 16, 0) },
   // CMP-1034
   { id: 'H-017', complaint_id: 'CMP-1034', status: 'Open', actor_id: 'USR-005', actor_name: 'Deepa Nair', note: 'Complaint submitted by resident.', created_at: getRelativeDate(8, 20, 0) },
   // CMP-1033
   { id: 'H-018', complaint_id: 'CMP-1033', status: 'Open', actor_id: 'USR-002', actor_name: 'Priya Sharma', note: 'Complaint submitted by resident.', created_at: getRelativeDate(12, 10, 0) },
-  { id: 'H-019', complaint_id: 'CMP-1033', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'New swing set ordered. Expected delivery in 5 days.', created_at: getRelativeDate(9, 14, 0) },
+  { id: 'H-019', complaint_id: 'CMP-1033', status: 'In Progress', actor_id: 'USR-004', actor_name: 'Society Admin', note: 'New swing chains and safety hooks ordered.', created_at: getRelativeDate(9, 14, 0) },
 ];
 
 const SEED_NOTICES = [
   {
-    id: 'NTC-001', title: 'Water Tank Cleaning', 
-    description: 'The overhead water tanks in all blocks will be cleaned on Sunday, August 24th between 9:00 AM and 1:00 PM. Please store sufficient water for the duration. Water supply will be temporarily interrupted during the cleaning process.',
+    id: 'NTC-001', title: 'Water Tank Cleaning & Maintenance', 
+    description: 'The overhead and underground water storage tanks across all blocks will be cleaned on Sunday between 9:00 AM and 1:00 PM. Please store adequate water beforehand. Water supply will resume normally by 2:00 PM.',
     is_important: true, created_by: 'USR-004', author_name: 'Society Admin',
     created_at: getRelativeDate(0, 9, 0)
   },
   {
     id: 'NTC-002', title: 'Monthly Maintenance Charges Due',
-    description: 'This is a reminder that maintenance charges for August 2026 are due by the 5th of the month. Please make the payment via bank transfer or at the society office. Late payments will incur a penalty of ₹500.',
+    description: 'Maintenance charges for the current billing cycle are due by the 5th of this month. Please complete payments via UPI/Bank transfer or at the management office. A late penalty of ₹500 applies after the 15th.',
     is_important: true, created_by: 'USR-004', author_name: 'Society Admin',
     created_at: getRelativeDate(3, 10, 0)
   },
   {
-    id: 'NTC-003', title: 'Diwali Celebration Planning Meeting',
-    description: 'A meeting to plan the society Diwali celebrations will be held on Saturday, August 30th at 5:00 PM in the community hall. All residents are welcome to join and share their ideas for the festivities.',
+    id: 'NTC-003', title: 'Annual Society Cultural Fest Planning',
+    description: 'A general body meeting to plan society cultural celebrations will be held this Saturday at 6:00 PM in the Clubhouse. All residents are warmly invited to attend and volunteer.',
     is_important: false, created_by: 'USR-004', author_name: 'Society Admin',
     created_at: getRelativeDate(2, 15, 0)
   },
   {
-    id: 'NTC-004', title: 'New Gym Equipment Installed',
-    description: 'We are pleased to announce that new gym equipment has been installed in the society fitness center. The gym is now equipped with a treadmill, elliptical trainer, and weight machines. Gym timings remain 6:00 AM to 10:00 PM.',
+    id: 'NTC-004', title: 'New Fitness Center Equipment Installed',
+    description: 'Modern cardiovascular and strength training equipment has been added to the society gym. Operational hours are 6:00 AM – 10:00 PM daily. Please follow the posted gym hygiene guidelines.',
     is_important: false, created_by: 'USR-004', author_name: 'Society Admin',
     created_at: getRelativeDate(5, 12, 0)
   },
   {
-    id: 'NTC-005', title: 'Parking Area Repainting',
-    description: 'The parking area in all blocks will be repainted next week starting Monday. Please ensure your vehicles are moved from the designated areas as per the schedule that will be shared via WhatsApp.',
+    id: 'NTC-005', title: 'Parking Bay Restriping & Repainting',
+    description: 'Line painting in the basement and open visitor parking will take place next Tuesday. Vehicle owners are requested to cooperate with security staff during the marking schedule.',
     is_important: false, created_by: 'USR-004', author_name: 'Society Admin',
     created_at: getRelativeDate(1, 11, 0)
   },
@@ -161,7 +163,46 @@ const SEED_SETTINGS = {
   overdue_threshold_days: 5
 };
 
-// ===== Database Init =====
+const SEED_NOTIFICATIONS = [
+  {
+    id: 'NTF-101',
+    user_id: 'USR-001',
+    recipient_email: 'yaswanth@example.com',
+    type: 'complaint_status_update',
+    title: 'Complaint #CMP-1042 Status Updated',
+    message: 'Your plumbing complaint has been marked "In Progress". Note: Maintenance team assigned. Plumber scheduled for inspection.',
+    is_read: false,
+    email_subject: 'Update on Maintenance Request #CMP-1042 [In Progress]',
+    created_at: getRelativeDate(0, 14, 15),
+    metadata: { complaint_id: 'CMP-1042', status: 'In Progress' }
+  },
+  {
+    id: 'NTF-102',
+    user_id: 'USR-001',
+    recipient_email: 'yaswanth@example.com',
+    type: 'important_notice',
+    title: 'Important Society Notice: Water Tank Cleaning & Maintenance',
+    message: 'The overhead and underground water storage tanks across all blocks will be cleaned on Sunday between 9:00 AM and 1:00 PM.',
+    is_read: true,
+    email_subject: 'IMPORTANT NOTICE: Water Tank Cleaning & Maintenance',
+    created_at: getRelativeDate(0, 9, 0),
+    metadata: { notice_id: 'NTC-001' }
+  },
+  {
+    id: 'NTF-103',
+    user_id: 'USR-002',
+    recipient_email: 'priya@example.com',
+    type: 'complaint_status_update',
+    title: 'Complaint #CMP-1037 Resolved',
+    message: 'Your water pressure issue has been resolved. Note: Water pressure issue fixed. Motor booster valve adjusted.',
+    is_read: false,
+    email_subject: 'Maintenance Request #CMP-1037 has been Resolved',
+    created_at: getRelativeDate(7, 15, 0),
+    metadata: { complaint_id: 'CMP-1037', status: 'Resolved' }
+  }
+];
+
+// ===== Database Initializer =====
 function initDB() {
   if (!localStorage.getItem(STORAGE_KEYS.users)) {
     localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(SEED_USERS));
@@ -179,11 +220,14 @@ function initDB() {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(SEED_SETTINGS));
   }
   if (!localStorage.getItem(STORAGE_KEYS.notifications)) {
-    localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(SEED_NOTIFICATIONS));
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.emails)) {
+    localStorage.setItem(STORAGE_KEYS.emails, JSON.stringify([]));
   }
 }
 
-// ===== Data Access Helpers =====
+// ===== Data Helpers =====
 function getData(key) {
   try {
     return JSON.parse(localStorage.getItem(key)) || [];
@@ -194,31 +238,35 @@ function setData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
-function delay(ms = 200) {
-  return new Promise(r => setTimeout(r, ms + Math.random() * 200));
+function delay(ms = 180) {
+  return new Promise(resolve => setTimeout(resolve, ms + Math.random() * 100));
 }
 
-// ===== Auth API =====
+// ===== Authentication APIs =====
 export async function apiLogin(email, password) {
-  await delay(400);
+  await delay(300);
   const users = getData(STORAGE_KEYS.users);
-  const user = users.find(u => u.email === email && u.password === password);
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
   if (!user) {
-    throw new Error('Invalid email or password');
+    throw new Error('Invalid email address or password');
   }
   const { password: _, ...safeUser } = user;
   return safeUser;
 }
 
 export async function apiRegister({ name, email, password, flat, phone }) {
-  await delay(400);
+  await delay(350);
   const users = getData(STORAGE_KEYS.users);
-  if (users.find(u => u.email === email)) {
-    throw new Error('An account with this email already exists');
+  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+    throw new Error('An account with this email address already exists');
   }
   const newUser = {
     id: generateId('USR'),
-    name, email, password, flat, phone,
+    name: name.trim(),
+    email: email.trim().toLowerCase(),
+    password,
+    flat: flat.trim(),
+    phone: phone.trim(),
     role: 'resident',
     created_at: new Date().toISOString()
   };
@@ -229,16 +277,15 @@ export async function apiRegister({ name, email, password, flat, phone }) {
 }
 
 export async function apiGoogleAuth(googleAccount) {
-  await delay(400);
+  await delay(300);
   const users = getData(STORAGE_KEYS.users);
   let user = users.find(u => u.email.toLowerCase() === googleAccount.email.toLowerCase());
   
   if (!user) {
-    // Create new resident user from Google profile
     user = {
       id: generateId('USR'),
-      name: googleAccount.name || 'Google User',
-      email: googleAccount.email,
+      name: googleAccount.name || 'Google Resident',
+      email: googleAccount.email.toLowerCase(),
       password: 'oauth_user',
       flat: googleAccount.flat || 'A-101',
       phone: googleAccount.phone || '9876543299',
@@ -253,82 +300,118 @@ export async function apiGoogleAuth(googleAccount) {
   return safeUser;
 }
 
+// ===== Complaints APIs =====
 export async function apiGetComplaints(filters = {}) {
-  await delay();
+  await delay(200);
   let complaints = getData(STORAGE_KEYS.complaints);
   const users = getData(STORAGE_KEYS.users);
-  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
-  const threshold = settings?.overdue_threshold_days || 5;
-  
-  // Enrich with resident info and overdue flag
+  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || SEED_SETTINGS;
+  const threshold = settings.overdue_threshold_days || 5;
+  const now = new Date();
+
+  // Enrich with resident metadata and computed overdue state
   complaints = complaints.map(c => {
     const resident = users.find(u => u.id === c.resident_id) || {};
-    const daysOpen = daysBetween(c.created_at, new Date());
+    const daysOpen = daysBetween(c.created_at, now);
     const isOverdue = c.status !== 'Resolved' && daysOpen > threshold;
-    return { ...c, resident_name: resident.name, resident_flat: resident.flat, days_open: daysOpen, is_overdue: isOverdue };
+    return {
+      ...c,
+      resident_name: resident.name || 'Unknown Resident',
+      resident_flat: resident.flat || '—',
+      resident_email: resident.email || '',
+      days_open: daysOpen,
+      is_overdue: isOverdue
+    };
   });
-  
-  // Filter by resident
+
+  // Filter: Resident ID
   if (filters.resident_id) {
     complaints = complaints.filter(c => c.resident_id === filters.resident_id);
   }
-  
-  // Filter by status
+
+  // Filter: Status
   if (filters.status && filters.status !== 'All') {
     complaints = complaints.filter(c => c.status === filters.status);
   }
-  
-  // Filter by category
+
+  // Filter: Category
   if (filters.category && filters.category !== 'All') {
     complaints = complaints.filter(c => c.category === filters.category);
   }
-  
-  // Filter by priority
+
+  // Filter: Priority
   if (filters.priority && filters.priority !== 'All') {
     complaints = complaints.filter(c => c.priority === filters.priority);
   }
-  
-  // Filter by overdue
+
+  // Filter: Overdue flag
   if (filters.overdue) {
     complaints = complaints.filter(c => c.is_overdue);
   }
-  
-  // Search
+
+  // Filter: Date Range ('all', 'today', '7days', '30days')
+  if (filters.date_range && filters.date_range !== 'All' && filters.date_range !== 'all') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (filters.date_range === 'today' || filters.date_range === 'Today') {
+      complaints = complaints.filter(c => new Date(c.created_at) >= today);
+    } else if (filters.date_range === '7days' || filters.date_range === 'Last 7 Days') {
+      const sevenDaysAgo = new Date(today);
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      complaints = complaints.filter(c => new Date(c.created_at) >= sevenDaysAgo);
+    } else if (filters.date_range === '30days' || filters.date_range === 'Last 30 Days') {
+      const thirtyDaysAgo = new Date(today);
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      complaints = complaints.filter(c => new Date(c.created_at) >= thirtyDaysAgo);
+    }
+  }
+
+  // Search filter (ID, category, description, resident name, flat)
   if (filters.search) {
-    const s = filters.search.toLowerCase();
+    const s = filters.search.toLowerCase().trim();
     complaints = complaints.filter(c => 
       c.id.toLowerCase().includes(s) ||
       c.category.toLowerCase().includes(s) ||
       c.description.toLowerCase().includes(s) ||
-      (c.resident_name && c.resident_name.toLowerCase().includes(s))
+      (c.resident_name && c.resident_name.toLowerCase().includes(s)) ||
+      (c.resident_flat && c.resident_flat.toLowerCase().includes(s))
     );
   }
-  
-  // Sort: overdue first, then by created_at desc
+
+  // Sort: Overdue items surfaced first at top, then newest created_at descending
   complaints.sort((a, b) => {
     if (a.is_overdue && !b.is_overdue) return -1;
     if (!a.is_overdue && b.is_overdue) return 1;
     return new Date(b.created_at) - new Date(a.created_at);
   });
-  
+
   return complaints;
 }
 
 export async function apiGetComplaint(id) {
-  await delay();
+  await delay(150);
   const complaints = getData(STORAGE_KEYS.complaints);
   const users = getData(STORAGE_KEYS.users);
-  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
-  const threshold = settings?.overdue_threshold_days || 5;
-  
+  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || SEED_SETTINGS;
+  const threshold = settings.overdue_threshold_days || 5;
+
   const complaint = complaints.find(c => c.id === id);
-  if (!complaint) throw new Error('Complaint not found');
-  
+  if (!complaint) throw new Error(`Complaint with ID #${id} was not found.`);
+
   const resident = users.find(u => u.id === complaint.resident_id) || {};
   const daysOpen = daysBetween(complaint.created_at, new Date());
   const isOverdue = complaint.status !== 'Resolved' && daysOpen > threshold;
-  
-  return { ...complaint, resident_name: resident.name, resident_flat: resident.flat, resident_email: resident.email, days_open: daysOpen, is_overdue: isOverdue };
+
+  return {
+    ...complaint,
+    resident_name: resident.name || 'Unknown Resident',
+    resident_flat: resident.flat || '—',
+    resident_email: resident.email || '',
+    resident_phone: resident.phone || '—',
+    days_open: daysOpen,
+    is_overdue: isOverdue
+  };
 }
 
 export async function apiCreateComplaint({ resident_id, category, description, photo_url }) {
@@ -337,29 +420,29 @@ export async function apiCreateComplaint({ resident_id, category, description, p
   const users = getData(STORAGE_KEYS.users);
   const user = users.find(u => u.id === resident_id);
   const now = new Date().toISOString();
-  
-  // Generate sequential ID
+
+  // Generate sequence-based ID
   const maxNum = complaints.reduce((max, c) => {
-    const num = parseInt(c.id.split('-')[1]);
-    return num > max ? num : max;
+    const num = parseInt(c.id.replace('CMP-', ''), 10);
+    return !isNaN(num) && num > max ? num : max;
   }, 1000);
-  
+
   const newComplaint = {
     id: `CMP-${maxNum + 1}`,
     resident_id,
     category,
-    description,
+    description: description.trim(),
     photo_url: photo_url || null,
-    priority: 'Low', // Admin assigns priority
+    priority: 'Low', // Admin sets/escalates priority
     status: 'Open',
     created_at: now,
     updated_at: now
   };
-  
-  complaints.push(newComplaint);
+
+  complaints.unshift(newComplaint);
   setData(STORAGE_KEYS.complaints, complaints);
-  
-  // Create history record
+
+  // Append initial lifecycle history audit entry
   const history = getData(STORAGE_KEYS.history);
   history.push({
     id: generateId('H'),
@@ -367,67 +450,83 @@ export async function apiCreateComplaint({ resident_id, category, description, p
     status: 'Open',
     actor_id: resident_id,
     actor_name: user?.name || 'Resident',
-    note: 'Complaint submitted by resident.',
+    note: 'Complaint registered by resident with initial Open status.',
     created_at: now
   });
   setData(STORAGE_KEYS.history, history);
-  
+
   return newComplaint;
 }
 
 export async function apiUpdateComplaintStatus(id, { status, note, actor_id, actor_name }) {
-  await delay(300);
+  await delay(250);
   const complaints = getData(STORAGE_KEYS.complaints);
+  const users = getData(STORAGE_KEYS.users);
   const idx = complaints.findIndex(c => c.id === id);
-  if (idx === -1) throw new Error('Complaint not found');
-  
+  if (idx === -1) throw new Error(`Complaint #${id} not found.`);
+
+  const oldStatus = complaints[idx].status;
   const now = new Date().toISOString();
   complaints[idx].status = status;
   complaints[idx].updated_at = now;
   setData(STORAGE_KEYS.complaints, complaints);
-  
-  // Create history record
+
+  // Create immutable status change history entry
   const history = getData(STORAGE_KEYS.history);
+  const auditNote = note || `Status updated from ${oldStatus} to ${status}.`;
   history.push({
     id: generateId('H'),
     complaint_id: id,
     status,
     actor_id,
-    actor_name,
-    note: note || `Status changed to ${status}.`,
+    actor_name: actor_name || 'Society Admin',
+    note: auditNote,
     created_at: now
   });
   setData(STORAGE_KEYS.history, history);
-  
+
+  // Trigger automated email & in-app notification to the resident
+  const resident = users.find(u => u.id === complaints[idx].resident_id);
+  if (resident && resident.email) {
+    await dispatchStatusChangeNotification({
+      complaint: complaints[idx],
+      resident,
+      oldStatus,
+      newStatus: status,
+      note: auditNote,
+      actor_name
+    });
+  }
+
   return complaints[idx];
 }
 
 export async function apiUpdateComplaintPriority(id, priority) {
-  await delay(200);
+  await delay(150);
   const complaints = getData(STORAGE_KEYS.complaints);
   const idx = complaints.findIndex(c => c.id === id);
-  if (idx === -1) throw new Error('Complaint not found');
-  
+  if (idx === -1) throw new Error(`Complaint #${id} not found.`);
+
   complaints[idx].priority = priority;
   complaints[idx].updated_at = new Date().toISOString();
   setData(STORAGE_KEYS.complaints, complaints);
-  
+
   return complaints[idx];
 }
 
 export async function apiGetComplaintHistory(complaintId) {
-  await delay();
+  await delay(120);
   const history = getData(STORAGE_KEYS.history);
   return history
     .filter(h => h.complaint_id === complaintId)
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 }
 
-// ===== Notices API =====
+// ===== Notice Board APIs =====
 export async function apiGetNotices() {
-  await delay();
+  await delay(150);
   const notices = getData(STORAGE_KEYS.notices);
-  // Sort: important first, then by date desc
+  // Pinned important notices surface at the top, followed by date descending
   return notices.sort((a, b) => {
     if (a.is_important && !b.is_important) return -1;
     if (!a.is_important && b.is_important) return 1;
@@ -436,16 +535,28 @@ export async function apiGetNotices() {
 }
 
 export async function apiCreateNotice({ title, description, is_important, created_by, author_name }) {
-  await delay(300);
+  await delay(250);
   const notices = getData(STORAGE_KEYS.notices);
   const newNotice = {
     id: generateId('NTC'),
-    title, description, is_important,
-    created_by, author_name,
+    title: title.trim(),
+    description: description.trim(),
+    is_important: !!is_important,
+    created_by,
+    author_name: author_name || 'Society Admin',
     created_at: new Date().toISOString()
   };
-  notices.push(newNotice);
+
+  notices.unshift(newNotice);
   setData(STORAGE_KEYS.notices, notices);
+
+  // If marked as Important, broadcast notification & email to all residents
+  if (newNotice.is_important) {
+    const users = getData(STORAGE_KEYS.users);
+    const residents = users.filter(u => u.role === 'resident');
+    await dispatchImportantNoticeBroadcast(newNotice, residents);
+  }
+
   return newNotice;
 }
 
@@ -453,9 +564,9 @@ export async function apiUpdateNotice(id, updates) {
   await delay(200);
   const notices = getData(STORAGE_KEYS.notices);
   const idx = notices.findIndex(n => n.id === id);
-  if (idx === -1) throw new Error('Notice not found');
-  
-  notices[idx] = { ...notices[idx], ...updates };
+  if (idx === -1) throw new Error('Notice not found.');
+
+  notices[idx] = { ...notices[idx], ...updates, updated_at: new Date().toISOString() };
   setData(STORAGE_KEYS.notices, notices);
   return notices[idx];
 }
@@ -467,36 +578,183 @@ export async function apiDeleteNotice(id) {
   setData(STORAGE_KEYS.notices, notices);
 }
 
-// ===== Dashboard Stats API =====
+// ===== Notifications & Email Dispatch Helpers =====
+async function dispatchStatusChangeNotification({ complaint, resident, newStatus, note, actor_name }) {
+  const notifications = getData(STORAGE_KEYS.notifications);
+  const emails = getData(STORAGE_KEYS.emails);
+  const now = new Date().toISOString();
+
+  const title = `Complaint #${complaint.id} Status: ${newStatus}`;
+  const subject = `[Society Maintenance] Complaint #${complaint.id} marked as ${newStatus}`;
+  const emailBody = `
+Dear ${resident.name},
+
+Your maintenance request for category "${complaint.category}" has received a status update:
+
+• Complaint ID: #${complaint.id}
+• New Status: ${newStatus}
+• Updated By: ${actor_name || 'Society Admin'}
+• Remarks / Note: ${note}
+
+You can track real-time resolution history at any time on the resident portal.
+
+Regards,
+Society Management Office
+  `.trim();
+
+  const newNotification = {
+    id: generateId('NTF'),
+    user_id: resident.id,
+    recipient_email: resident.email,
+    type: 'complaint_status_update',
+    title,
+    message: note || `Your complaint status has changed to ${newStatus}.`,
+    is_read: false,
+    email_subject: subject,
+    email_body: emailBody,
+    created_at: now,
+    metadata: {
+      complaint_id: complaint.id,
+      status: newStatus
+    }
+  };
+
+  notifications.unshift(newNotification);
+  setData(STORAGE_KEYS.notifications, notifications);
+
+  // Record outbound email in mock email dispatcher
+  emails.unshift({
+    id: generateId('EML'),
+    to: resident.email,
+    from: 'admin@society.com',
+    subject,
+    body: emailBody,
+    sent_at: now,
+    status: 'delivered'
+  });
+  setData(STORAGE_KEYS.emails, emails);
+
+  // Dispatch custom window event for real-time header counter updates
+  window.dispatchEvent(new CustomEvent('smt_notification_received', { detail: newNotification }));
+}
+
+async function dispatchImportantNoticeBroadcast(notice, residents) {
+  const notifications = getData(STORAGE_KEYS.notifications);
+  const emails = getData(STORAGE_KEYS.emails);
+  const now = new Date().toISOString();
+
+  residents.forEach(resident => {
+    const subject = `URGENT NOTICE: ${notice.title}`;
+    const emailBody = `
+Dear Resident (${resident.name}, Flat ${resident.flat}),
+
+An IMPORTANT circular has been published by the Society Administration:
+
+"${notice.title}"
+
+${notice.description}
+
+Please take note of the instructions and plan accordingly.
+
+Posted by: ${notice.author_name}
+Date: ${new Date().toLocaleDateString()}
+    `.trim();
+
+    notifications.unshift({
+      id: generateId('NTF'),
+      user_id: resident.id,
+      recipient_email: resident.email,
+      type: 'important_notice',
+      title: `Important Notice: ${notice.title}`,
+      message: notice.description,
+      is_read: false,
+      email_subject: subject,
+      email_body: emailBody,
+      created_at: now,
+      metadata: { notice_id: notice.id }
+    });
+
+    emails.unshift({
+      id: generateId('EML'),
+      to: resident.email,
+      from: 'admin@society.com',
+      subject,
+      body: emailBody,
+      sent_at: now,
+      status: 'delivered'
+    });
+  });
+
+  setData(STORAGE_KEYS.notifications, notifications);
+  setData(STORAGE_KEYS.emails, emails);
+  window.dispatchEvent(new CustomEvent('smt_notification_received'));
+}
+
+export async function apiGetNotifications(userId = null) {
+  await delay(100);
+  let notifications = getData(STORAGE_KEYS.notifications);
+  if (userId) {
+    notifications = notifications.filter(n => n.user_id === userId);
+  }
+  return notifications.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+}
+
+export async function apiMarkNotificationRead(id) {
+  const notifications = getData(STORAGE_KEYS.notifications);
+  const idx = notifications.findIndex(n => n.id === id);
+  if (idx !== -1) {
+    notifications[idx].is_read = true;
+    setData(STORAGE_KEYS.notifications, notifications);
+    window.dispatchEvent(new CustomEvent('smt_notification_updated'));
+  }
+}
+
+export async function apiMarkAllNotificationsRead(userId) {
+  const notifications = getData(STORAGE_KEYS.notifications);
+  notifications.forEach(n => {
+    if (!userId || n.user_id === userId) {
+      n.is_read = true;
+    }
+  });
+  setData(STORAGE_KEYS.notifications, notifications);
+  window.dispatchEvent(new CustomEvent('smt_notification_updated'));
+}
+
+export async function apiGetUnreadNotificationCount(userId) {
+  const notifications = getData(STORAGE_KEYS.notifications);
+  return notifications.filter(n => (!userId || n.user_id === userId) && !n.is_read).length;
+}
+
+// ===== Dashboard & Analytics APIs =====
 export async function apiGetDashboardStats(residentId = null) {
-  await delay();
+  await delay(150);
   let complaints = getData(STORAGE_KEYS.complaints);
-  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings));
-  const threshold = settings?.overdue_threshold_days || 5;
-  
+  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || SEED_SETTINGS;
+  const threshold = settings.overdue_threshold_days || 5;
+  const now = new Date();
+
   if (residentId) {
     complaints = complaints.filter(c => c.resident_id === residentId);
   }
-  
+
   const total = complaints.length;
   const open = complaints.filter(c => c.status === 'Open').length;
   const inProgress = complaints.filter(c => c.status === 'In Progress').length;
   const resolved = complaints.filter(c => c.status === 'Resolved').length;
   const overdue = complaints.filter(c => {
-    const daysOpen = daysBetween(c.created_at, new Date());
+    const daysOpen = daysBetween(c.created_at, now);
     return c.status !== 'Resolved' && daysOpen > threshold;
   }).length;
-  
-  // Category breakdown
+
   const categories = {};
   complaints.forEach(c => {
     categories[c.category] = (categories[c.category] || 0) + 1;
   });
-  
+
   return { total, open, inProgress, resolved, overdue, categories };
 }
 
-// ===== Settings API =====
+// ===== System Configuration Settings APIs =====
 export async function apiGetSettings() {
   await delay(100);
   return JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || SEED_SETTINGS;
@@ -504,18 +762,17 @@ export async function apiGetSettings() {
 
 export async function apiUpdateSettings(updates) {
   await delay(200);
-  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || {};
+  const settings = JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)) || SEED_SETTINGS;
   const updated = { ...settings, ...updates };
   localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(updated));
   return updated;
 }
 
-// ===== Init =====
+// ===== Initialization & Reset =====
 export function initializeAPI() {
   initDB();
 }
 
-// ===== Reset (for testing) =====
 export function resetData() {
   Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
   initDB();

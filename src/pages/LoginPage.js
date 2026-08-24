@@ -61,7 +61,7 @@ export async function renderLoginPage() {
         <form id="login-form" novalidate>
           <div class="form-group">
             <label class="form-label" for="login-email" id="login-email-label">Resident Email</label>
-            <input class="form-input" type="email" id="login-email" placeholder="rohith@example.com" value="rohith@example.com" autocomplete="email" required />
+            <input class="form-input" type="email" id="login-email" placeholder="yaswanth@example.com" value="yaswanth@example.com" autocomplete="email" required />
           </div>
           
           <div class="form-group">
@@ -129,8 +129,8 @@ export async function renderLoginPage() {
       titleEl.textContent = 'Resident Sign In';
       subtitleEl.textContent = 'Access your maintenance requests, notices & community updates';
       emailLabel.textContent = 'Resident Email';
-      emailInput.placeholder = 'rohith@example.com';
-      emailInput.value = 'rohith@example.com';
+      emailInput.placeholder = 'yaswanth@example.com';
+      emailInput.value = 'yaswanth@example.com';
       passwordInput.value = 'password123';
       googleText.textContent = 'Sign in with Google (Resident)';
       submitBtn.textContent = 'Sign In to Resident Portal';
@@ -162,7 +162,7 @@ export async function renderLoginPage() {
 
   quickDemoBtn.addEventListener('click', () => {
     if (currentTab === 'resident') {
-      emailInput.value = 'rohith@example.com';
+      emailInput.value = 'yaswanth@example.com';
       passwordInput.value = 'password123';
     } else {
       emailInput.value = 'admin@society.com';
@@ -206,8 +206,8 @@ export async function renderLoginPage() {
           <button class="btn btn--secondary" id="g-user-1" style="justify-content: flex-start; height: auto; padding: var(--space-3);">
             <div style="width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: var(--space-3);">R</div>
             <div style="text-align: left;">
-              <div style="font-weight: 600; color: var(--color-gray-900);">Rohith Kumar (Resident)</div>
-              <div style="font-size: var(--font-size-xs); color: var(--color-gray-500);">rohith@example.com • Flat A-404</div>
+              <div style="font-weight: 600; color: var(--color-gray-900);">Yaswanth Kumar (Resident)</div>
+              <div style="font-size: var(--font-size-xs); color: var(--color-gray-500);">yaswanth@example.com • Flat A-404</div>
             </div>
           </button>
           <button class="btn btn--secondary" id="g-user-2" style="justify-content: flex-start; height: auto; padding: var(--space-3);">
@@ -250,7 +250,7 @@ export async function renderLoginPage() {
       }
     };
 
-    overlay.querySelector('#g-user-1')?.addEventListener('click', () => handleGoogleSelect({ name: 'Rohith Kumar', email: 'rohith@example.com', role: 'resident', flat: 'A-404' }));
+    overlay.querySelector('#g-user-1')?.addEventListener('click', () => handleGoogleSelect({ name: 'Yaswanth Kumar', email: 'yaswanth@example.com', role: 'resident', flat: 'A-404' }));
     overlay.querySelector('#g-user-2')?.addEventListener('click', () => handleGoogleSelect({ name: 'Priya Sharma', email: 'priya@example.com', role: 'resident', flat: 'B-302' }));
     overlay.querySelector('#g-user-3')?.addEventListener('click', () => handleGoogleSelect({ name: 'Society Admin', email: 'admin@society.com', role: 'admin', flat: 'Office' }));
   });

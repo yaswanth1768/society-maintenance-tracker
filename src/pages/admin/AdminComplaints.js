@@ -1,4 +1,6 @@
 // ===== Admin Complaints Management Page =====
+// Filter by Category, Status, Date, Priority, Overdue, and Search
+
 import { mountAppShell } from '../../components/layout/AppShell.js';
 import { icon } from '../../assets/icons.js';
 import { apiGetComplaints } from '../../api.js';
@@ -9,9 +11,15 @@ const PAGE_SIZE = 10;
 const CATEGORIES = ['All', 'Plumbing', 'Electrical', 'Cleaning', 'Security', 'Lift', 'Water Supply', 'Common Area', 'Other'];
 const STATUSES = ['All', 'Open', 'In Progress', 'Resolved'];
 const PRIORITIES = ['All', 'Low', 'Medium', 'High'];
+const DATE_RANGES = [
+  { label: 'All Dates', value: 'all' },
+  { label: 'Today', value: 'today' },
+  { label: 'Last 7 Days', value: '7days' },
+  { label: 'Last 30 Days', value: '30days' }
+];
 
 let currentPage = 1;
-let currentFilters = { status: 'All', category: 'All', priority: 'All', search: '', overdue: false };
+let currentFilters = { status: 'All', category: 'All', priority: 'All', date_range: 'all', search: '', overdue: false };
 let allComplaints = [];
 
 function renderFilters() {
@@ -19,26 +27,31 @@ function renderFilters() {
     <div class="filter-bar">
       <div class="filter-bar__search">
         ${icon('search', 16)}
-        <input class="form-input" type="text" id="filter-search" placeholder="Search complaints, residents…" value="${currentFilters.search}" />
+        <input class="form-input" type="text" id="filter-search" placeholder="Search ID, category, resident, flat…" value="${currentFilters.search}" />
       </div>
       <div class="filter-bar__select">
-        <select class="form-input form-select" id="filter-category">
+        <select class="form-input form-select" id="filter-category" title="Filter by Category">
           ${CATEGORIES.map(c => `<option value="${c}" ${currentFilters.category === c ? 'selected' : ''}>${c === 'All' ? 'All Categories' : c}</option>`).join('')}
         </select>
       </div>
       <div class="filter-bar__select">
-        <select class="form-input form-select" id="filter-status">
-          ${STATUSES.map(s => `<option value="${s}" ${currentFilters.status === s ? 'selected' : ''}>${s === 'All' ? 'All Status' : s}</option>`).join('')}
+        <select class="form-input form-select" id="filter-status" title="Filter by Status">
+          ${STATUSES.map(s => `<option value="${s}" ${currentFilters.status === s ? 'selected' : ''}>${s === 'All' ? 'All Statuses' : s}</option>`).join('')}
         </select>
       </div>
       <div class="filter-bar__select">
-        <select class="form-input form-select" id="filter-priority">
-          ${PRIORITIES.map(p => `<option value="${p}" ${currentFilters.priority === p ? 'selected' : ''}>${p === 'All' ? 'All Priority' : p}</option>`).join('')}
+        <select class="form-input form-select" id="filter-date" title="Filter by Date">
+          ${DATE_RANGES.map(d => `<option value="${d.value}" ${currentFilters.date_range === d.value ? 'selected' : ''}>${d.label}</option>`).join('')}
         </select>
       </div>
-      <label class="form-checkbox" style="white-space: nowrap;">
+      <div class="filter-bar__select">
+        <select class="form-input form-select" id="filter-priority" title="Filter by Priority">
+          ${PRIORITIES.map(p => `<option value="${p}" ${currentFilters.priority === p ? 'selected' : ''}>${p === 'All' ? 'All Priorities' : p}</option>`).join('')}
+        </select>
+      </div>
+      <label class="form-checkbox" style="white-space: nowrap; margin-left: var(--space-2);">
         <input type="checkbox" id="filter-overdue" ${currentFilters.overdue ? 'checked' : ''} />
-        <span>Overdue only</span>
+        <span style="font-weight: 500;">Overdue SLA only</span>
       </label>
     </div>
   `;
@@ -54,8 +67,8 @@ function renderTable(complaints) {
       <div class="card card--padded">
         <div class="empty-state">
           <div class="empty-state__icon">${icon('inbox', 48)}</div>
-          <div class="empty-state__title">No complaints found</div>
-          <div class="empty-state__text">No complaints match your current filters. Try adjusting your search criteria.</div>
+          <div class="empty-state__title">No Complaints Found</div>
+          <div class="empty-state__text">No complaints match your active filter criteria. Try resetting filters or changing your search terms.</div>
         </div>
       </div>
     `;
@@ -67,15 +80,14 @@ function renderTable(complaints) {
         <thead>
           <tr>
             <th>Complaint ID</th>
-            <th>Resident</th>
+            <th>Resident & Unit</th>
             <th>Category</th>
             <th>Description</th>
             <th>Priority</th>
             <th>Status</th>
             <th>Created</th>
-            <th>Updated</th>
-            <th>Overdue</th>
-            <th>Action</th>
+            <th>Days Open / SLA</th>
+            <th style="text-align: right;">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -83,40 +95,45 @@ function renderTable(complaints) {
             <tr ${c.is_overdue ? 'style="background: var(--color-red-light);"' : ''}>
               <td><span class="complaint-id" data-admin-id="${c.id}">#${c.id}</span></td>
               <td style="white-space: nowrap;">
-                <div>${c.resident_name || '—'}</div>
-                <div style="font-size: var(--font-size-xs); color: var(--color-gray-400);">${c.resident_flat || ''}</div>
+                <div style="font-weight: 500; color: var(--color-gray-900);">${c.resident_name || '—'}</div>
+                <div style="font-size: var(--font-size-xs); color: var(--color-gray-500);">Flat ${c.resident_flat || ''}</div>
               </td>
-              <td>${c.category}</td>
-              <td class="description-cell">${truncate(c.description, 40)}</td>
+              <td><span style="font-weight: 500;">${c.category}</span></td>
+              <td class="description-cell">${truncate(c.description, 45)}</td>
               <td><span class="badge badge--${priorityClass(c.priority)}">${c.priority}</span></td>
               <td><span class="badge badge--${statusClass(c.status)}">${c.status}</span></td>
-              <td style="white-space:nowrap;">${formatDate(c.created_at)}</td>
-              <td style="white-space:nowrap;">${formatDate(c.updated_at)}</td>
+              <td style="white-space:nowrap; font-size: var(--font-size-xs); color: var(--color-gray-500);">${formatDate(c.created_at)}</td>
               <td>
                 ${c.is_overdue 
-                  ? `<span class="overdue-cell">${c.days_open}d</span>` 
-                  : '<span style="color: var(--color-gray-400);">—</span>'}
+                  ? `<span class="badge badge--overdue" style="font-weight: 600;">${c.days_open}d (Overdue)</span>` 
+                  : `<span style="font-size: var(--font-size-xs); color: var(--color-gray-600);">${c.days_open} days</span>`}
               </td>
-              <td><button class="btn btn--ghost btn--sm" data-admin-manage="${c.id}">${icon('eye', 14)} Manage</button></td>
+              <td style="text-align: right;">
+                <button class="btn btn--primary btn--sm" data-admin-manage="${c.id}">
+                  ${icon('wrench', 14)} Manage
+                </button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
       
-      <!-- Mobile Cards -->
+      <!-- Mobile Responsive Cards -->
       <div class="complaint-cards-mobile" id="admin-cards-mobile">
         ${pageComplaints.map(c => `
-          <div class="complaint-card" data-admin-card="${c.id}" ${c.is_overdue ? 'style="border-left: 3px solid var(--color-red);"' : ''}>
+          <div class="complaint-card" data-admin-card="${c.id}" ${c.is_overdue ? 'style="border-left: 4px solid var(--color-red);"' : ''}>
             <div class="complaint-card__header">
               <span class="complaint-card__id">#${c.id}</span>
               <span class="badge badge--${statusClass(c.status)}">${c.status}</span>
             </div>
-            <div style="font-size: var(--font-size-xs); color: var(--color-gray-500); margin-bottom: var(--space-1);">${c.resident_name || '—'} • ${c.resident_flat || ''}</div>
-            <div class="complaint-card__category">${c.category}</div>
+            <div style="font-size: var(--font-size-xs); color: var(--color-gray-600); margin-bottom: var(--space-1); font-weight: 500;">
+              ${c.resident_name || '—'} • Flat ${c.resident_flat || ''}
+            </div>
+            <div class="complaint-card__category" style="font-weight: 600; color: var(--color-gray-800);">${c.category}</div>
             <div class="complaint-card__description">${truncate(c.description, 80)}</div>
             <div class="complaint-card__meta">
               <span class="badge badge--${priorityClass(c.priority)}">${c.priority}</span>
-              ${c.is_overdue ? `<span class="badge badge--overdue">${c.days_open}d overdue</span>` : ''}
+              ${c.is_overdue ? `<span class="badge badge--overdue">${c.days_open}d overdue</span>` : `<span style="font-size: var(--font-size-xs); color: var(--color-gray-500);">${c.days_open}d open</span>`}
               <span class="complaint-card__date">${formatDate(c.created_at)}</span>
             </div>
           </div>
@@ -132,7 +149,6 @@ function renderPagination(total, totalPages) {
   const start = (currentPage - 1) * PAGE_SIZE + 1;
   const end = Math.min(currentPage * PAGE_SIZE, total);
   
-  // Show limited page numbers
   let pages = [];
   const maxPages = 7;
   if (totalPages <= maxPages) {
@@ -151,14 +167,14 @@ function renderPagination(total, totalPages) {
     <div class="pagination">
       <span class="pagination__info">Showing ${start}–${end} of ${total} complaints</span>
       <div class="pagination__controls">
-        <button class="pagination__btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
+        <button class="pagination__btn" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''} aria-label="Previous Page">
           ${icon('chevronLeft', 16)}
         </button>
         ${pages.map(p => p === '...' 
           ? '<span style="padding: 0 4px; color: var(--color-gray-400);">…</span>' 
           : `<button class="pagination__btn ${p === currentPage ? 'pagination__btn--active' : ''}" data-page="${p}">${p}</button>`
         ).join('')}
-        <button class="pagination__btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
+        <button class="pagination__btn" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''} aria-label="Next Page">
           ${icon('chevronRight', 16)}
         </button>
       </div>
@@ -177,7 +193,7 @@ async function loadComplaints(content) {
     bindTableEvents(content);
     handleResponsive();
   } catch (err) {
-    listEl.innerHTML = `<div class="inline-error">${icon('alertCircle', 16)} Unable to load complaints. Please try again.</div>`;
+    listEl.innerHTML = `<div class="inline-error">${icon('alertCircle', 16)} Unable to load complaints: ${err.message}</div>`;
   }
 }
 
@@ -193,7 +209,7 @@ function bindTableEvents(content) {
   });
   content.querySelectorAll('[data-page]').forEach(el => {
     el.addEventListener('click', () => {
-      const page = parseInt(el.dataset.page);
+      const page = parseInt(el.dataset.page, 10);
       if (!isNaN(page) && page >= 1 && page !== currentPage) {
         currentPage = page;
         const listEl = document.getElementById('admin-complaints-list');
@@ -222,17 +238,17 @@ function handleResponsive() {
 
 export async function renderAdminComplaints() {
   currentPage = 1;
-  currentFilters = { status: 'All', category: 'All', priority: 'All', search: '', overdue: false };
+  currentFilters = { status: 'All', category: 'All', priority: 'All', date_range: 'all', search: '', overdue: false };
   
-  const content = mountAppShell('Complaints');
+  const content = mountAppShell('Manage Complaints');
   
   content.innerHTML = `
     <div style="margin-bottom: var(--space-4);">
       <button class="btn btn--ghost" id="admin-complaints-back-btn" style="padding-left: 0;">${icon('arrowLeft', 16)} Back to Dashboard</button>
     </div>
     <div class="page-header">
-      <h2 class="page-header__title">Manage Complaints</h2>
-      <p class="page-header__subtitle">Review, prioritize, and update maintenance complaints.</p>
+      <h2 class="page-header__title">Manage Society Complaints</h2>
+      <p class="page-header__subtitle">Audit maintenance requests, assign priority levels, and record resolution milestones.</p>
     </div>
     ${renderFilters()}
     <div id="admin-complaints-list"></div>
@@ -256,6 +272,11 @@ export async function renderAdminComplaints() {
   });
   document.getElementById('filter-status')?.addEventListener('change', (e) => {
     currentFilters.status = e.target.value;
+    currentPage = 1;
+    loadComplaints(content);
+  });
+  document.getElementById('filter-date')?.addEventListener('change', (e) => {
+    currentFilters.date_range = e.target.value;
     currentPage = 1;
     loadComplaints(content);
   });
